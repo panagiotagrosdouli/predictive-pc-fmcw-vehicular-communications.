@@ -2,7 +2,12 @@
 	paper-full motion manifest paper-ablation staged corrected-quick \
 	corrected-full paper-draft reproducibility reproduce split-audit stages stage \
 	stage2-diagnostic womd-preflight canonical-preflight canonical-stage1 \
-	canonical-full
+	canonical-full synthetic-dataset synthetic-dataset-validate \
+	synthetic-training synthetic-training-validate synthetic-baselines \
+	synthetic-link-eval synthetic-ablation-plan synthetic-ablation \
+	synthetic-pipeline synthetic-freeze synthetic-heldout synthetic-ood \
+	synthetic-select-checkpoints synthetic-scheduling-heldout synthetic-scheduling-ood \
+	synthetic-stats-heldout synthetic-stats-ood
 
 install:
 	python -m pip install -e ".[dev]"
@@ -15,6 +20,81 @@ lint:
 
 validate:
 	pcfmcw validate --config configs/default.json --output artifacts/validation.json
+
+synthetic-dataset:
+	PYTHONPATH=src python scripts/build_synthetic_dataset_v1.py \
+		--output artifacts/synthetic_dataset_v1
+
+synthetic-dataset-validate:
+	PYTHONPATH=src python scripts/build_synthetic_dataset_v1.py \
+		--output artifacts/synthetic_dataset_v1 --validate-only
+
+synthetic-training:
+	PYTHONPATH=src python scripts/export_synthetic_training_v1.py \
+		--dataset artifacts/synthetic_dataset_v1 \
+		--output artifacts/synthetic_dataset_v1/training_dev.npz
+
+synthetic-training-validate:
+	PYTHONPATH=src python scripts/export_synthetic_training_v1.py \
+		--dataset artifacts/synthetic_dataset_v1 \
+		--output artifacts/synthetic_dataset_v1/training_dev.npz --validate-only
+
+synthetic-baselines:
+	PYTHONPATH=src python scripts/evaluate_synthetic_baselines_v1.py \
+		--dataset artifacts/synthetic_dataset_v1 --split development \
+		--output artifacts/synthetic_dataset_v1/development_baselines.json
+
+synthetic-link-eval:
+	PYTHONPATH=src python scripts/evaluate_synthetic_link_v1.py \
+		--dataset artifacts/synthetic_dataset_v1 --split development \
+		--output artifacts/synthetic_dataset_v1/development_link_metrics.json
+
+synthetic-ablation-plan:
+	PYTHONPATH=src python scripts/train_synthetic_ablation_v1.py \
+		--dataset artifacts/synthetic_dataset_v1/training_dev.npz --plan-only
+
+synthetic-ablation:
+	PYTHONPATH=src python scripts/train_synthetic_ablation_v1.py \
+		--dataset artifacts/synthetic_dataset_v1/training_dev.npz \
+		--output artifacts/synthetic_dataset_v1/learned_ablation
+
+synthetic-pipeline:
+	PYTHONPATH=src python scripts/run_synthetic_pipeline_v1.py \
+		--output artifacts/synthetic_dataset_v1
+
+synthetic-freeze:
+	PYTHONPATH=src python scripts/freeze_synthetic_publication_v1.py
+
+synthetic-select-checkpoints:
+	PYTHONPATH=src python scripts/select_synthetic_scheduler_checkpoints_v1.py
+
+synthetic-heldout:
+	PYTHONPATH=src python scripts/export_synthetic_official_v1.py \
+		--split held_out_test \
+		--output artifacts/synthetic_dataset_v1/held_out_test.npz
+
+synthetic-ood:
+	PYTHONPATH=src python scripts/export_synthetic_official_v1.py \
+		--split ood_test \
+		--output artifacts/synthetic_dataset_v1/ood_test.npz
+
+synthetic-scheduling-heldout:
+	PYTHONPATH=src python scripts/run_synthetic_scheduling_v1.py \
+		--split held_out_test
+
+synthetic-scheduling-ood:
+	PYTHONPATH=src python scripts/run_synthetic_scheduling_v1.py \
+		--split ood_test
+
+synthetic-stats-heldout:
+	PYTHONPATH=src python scripts/analyze_synthetic_scheduling_v1.py \
+		--input artifacts/synthetic_dataset_v1/scheduling_held_out_test.json \
+		--output artifacts/synthetic_dataset_v1/statistics_held_out_test.json
+
+synthetic-stats-ood:
+	PYTHONPATH=src python scripts/analyze_synthetic_scheduling_v1.py \
+		--input artifacts/synthetic_dataset_v1/scheduling_ood_test.json \
+		--output artifacts/synthetic_dataset_v1/statistics_ood_test.json
 
 benchmark:
 	pcfmcw benchmark --config configs/default.json --output artifacts/synthetic_benchmark

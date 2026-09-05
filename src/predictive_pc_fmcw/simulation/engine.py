@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
-from ..config import ExperimentConfig, SensingConfig
+from ..config import ExperimentConfig, LinkConfig, SensingConfig
 from ..data.scenario import MotionScenario
 from ..geometry import heading_from_positions, range_and_bearing
 from ..link import LinkModel
@@ -168,8 +168,10 @@ def run_simulation(
     config: ExperimentConfig,
     seed: int,
     learned_predictor: TrajectoryPredictor | None = None,
+    forecast_link_config: LinkConfig | None = None,
 ) -> SimulationOutput:
     model = LinkModel(config.link)
+    forecast_model = LinkModel(forecast_link_config or config.link)
     scheduler = build_scheduler(scheduler_name, config.scheduler, seed)
     slots = min(scenario.evaluation_slots, traffic.arrivals.shape[0])
     vehicles = scenario.vehicle_count
@@ -218,7 +220,7 @@ def run_simulation(
             time_index,
             config.prediction_horizon_steps,
             scheduler.forecast_mode,
-            model,
+            forecast_model,
             learned_predictor=learned_predictor,
             history_noise_std_m=config.history_measurement_noise_std_m,
             forecast_noise_std_m=config.forecast_position_noise_std_m,

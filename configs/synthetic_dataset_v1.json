@@ -1,0 +1,72 @@
+{
+  "protocol": "synthetic_dataset_v1",
+  "study_scope": "controlled_dataset_free_simulation",
+  "master_seed": 20260905,
+  "simulation": {
+    "duration_s": 12.0,
+    "sampling_hz": 10.0,
+    "ego_position_m": [0.0, 0.0],
+    "coordinate_frame": "ego_fixed_relative_world_xy"
+  },
+  "mobility": {
+    "families": [
+      "constant_velocity",
+      "constant_acceleration",
+      "approaching",
+      "receding",
+      "lateral_crossing",
+      "lane_change",
+      "curved",
+      "stop_and_go",
+      "accelerate_then_brake",
+      "mixed_nonlinear",
+      "high_relative_speed"
+    ],
+    "train_dev_ranges": {
+      "initial_range_m": [30.0, 180.0],
+      "speed_mps": [5.0, 35.0],
+      "acceleration_mps2": [-4.0, 3.0],
+      "lateral_speed_mps": [-3.0, 3.0],
+      "maneuver_duration_s": [2.0, 6.0]
+    },
+    "ood_ranges": {
+      "initial_range_m": [20.0, 220.0],
+      "speed_mps": [35.0, 45.0],
+      "acceleration_mps2": [-6.0, 4.5],
+      "lateral_speed_mps": [-5.0, 5.0],
+      "maneuver_duration_s": [2.0, 6.0]
+    },
+    "ood_policy": "speed_at_or_above_train_max_and_extended_acceleration_and_lateral_severity"
+  },
+  "observation_noise": {
+    "range_std_m": 0.05,
+    "radial_velocity_std_mps": 0.10,
+    "bearing_std_deg": 0.10,
+    "status": "controlled_simulation_assumption_not_measured_sensor_performance"
+  },
+  "splits": {
+    "train_fraction": 0.70,
+    "development_fraction": 0.15,
+    "held_out_test_fraction": 0.15,
+    "split_unit": "scenario",
+    "official_test_for_selection": false,
+    "ood_test_for_selection": false
+  },
+  "pc_fmcw_dpsk": {
+    "carrier_frequency_hz": 1.934e14,
+    "chirp_bandwidth_hz": 1.0e10,
+    "chirp_period_s": 1.0e-5,
+    "data_rate_bps": 1.0e9,
+    "modulation": "DPSK",
+    "parameter_source": "Liu et al., IEEE Photonics Technology Letters, DOI 10.1109/LPT.2025.3649597"
+  },
+  "scientific_guards": {
+    "causal_observations_only": true,
+    "oracle_evaluation_only": true,
+    "no_external_trajectory_dataset": true,
+    "no_real_world_validation_claim": true,
+    "negative_results_visible": true,
+    "ood_mobility_harder_than_training": true,
+    "observation_noise_is_controlled_assumption": true
+  }
+}
