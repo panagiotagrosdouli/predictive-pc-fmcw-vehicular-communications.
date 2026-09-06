@@ -8,6 +8,7 @@ on:
       - ".github/workflows/corrected_scheduler_diagnostics.yml"
       - "src/predictive_pc_fmcw/scheduling/**"
       - "src/predictive_pc_fmcw/ablations.py"
+      - "scripts/analyze_corrected_scheduler_mechanism.py"
       - "tests/test_link_lifetime_scheduler.py"
       - "tests/test_traffic_and_schedulers.py"
       - "tests/test_ablations.py"
@@ -40,6 +41,12 @@ jobs:
           --config configs/default.json
           --output results/corrected_scheduler_benchmark
           --schedulers reactive_greedy predictive_utility link_lifetime oracle
+      - name: Decision-level mechanism diagnostic
+        run: >-
+          python scripts/analyze_corrected_scheduler_mechanism.py
+          --config configs/default.json
+          --output results/corrected_scheduler_mechanism.json
+          --with-stress-cases
       - name: Corrected paper ablation suite
         run: >-
           pcfmcw paper-ablation
@@ -59,6 +66,7 @@ jobs:
           name: corrected-scheduler-diagnostics
           path: |
             results/corrected_scheduler_benchmark
+            results/corrected_scheduler_mechanism.json
             results/corrected_paper_ablations
             results/corrected_matrix_quick
           if-no-files-found: error
