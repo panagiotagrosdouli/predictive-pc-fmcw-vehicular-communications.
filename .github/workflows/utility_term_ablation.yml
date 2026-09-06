@@ -1,0 +1,48 @@
+name: Predictive utility term ablation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/09_run_utility_term_ablation.py'
+      - 'src/predictive_pc_fmcw/**'
+      - 'configs/default.json'
+      - '.github/workflows/utility_term_ablation.yml'
+  workflow_dispatch:
+
+jobs:
+  utility-ablation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e '.[dev]'
+      - name: Static checks
+        run: ruff check src tests scripts
+      - name: Unit tests
+        run: pytest -q
+      - name: Run utility-term ablation
+        run: |
+          python scripts/09_run_utility_term_ablation.py \
+            --output artifacts/utility_term_ablation
+      - name: Verify ablation cardinality
+        run: |
+          python - <<'PY'
+          import csv
+          from pathlib import Path
+          path = Path('artifacts/utility_term_ablation/utility_term_ablation.csv')
+          rows = list(csv.DictReader(path.open()))
+          assert len(rows) == 100, len(rows)
+          assert {r['variant'] for r in rows} == {
+              'full', 'no_fairness', 'no_queue', 'no_deadline', 'no_opportunity'
+          }
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: predictive-utility-term-ablation
+          path: artifacts/utility_term_ablation/
+          retention-days: 14
