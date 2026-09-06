@@ -100,11 +100,11 @@ class TrafficAndSchedulerTest(unittest.TestCase):
             self.assertIn(decision.vehicle, {1, 2})
 
     def test_lifetime_urgency_is_horizon_scale_invariant(self):
-        def context(horizon, lifetime):
+        def context(horizon, lifetime, deadline):
             return SchedulerContext(
                 slot=3,
                 queue_lengths=np.asarray([4, 4]),
-                time_to_deadline=np.asarray([4.0, 4.0]),
+                time_to_deadline=np.asarray(deadline, dtype=np.float64),
                 current_goodput_bps=np.asarray([8e8, 8e8]),
                 current_outage=np.asarray([False, False]),
                 predicted_goodput_bps=np.full((2, horizon), 8e8),
@@ -117,8 +117,8 @@ class TrafficAndSchedulerTest(unittest.TestCase):
             )
 
         scheduler = build_scheduler("link_lifetime", SchedulerConfig(), 2)
-        short = scheduler._score(context(4, [2, 4]))
-        long = scheduler._score(context(8, [4, 8]))
+        short = scheduler._lifetime_urgency(context(4, [2, 4], [4, 4]))
+        long = scheduler._lifetime_urgency(context(8, [4, 8], [8, 8]))
         np.testing.assert_allclose(short, long)
 
     def test_reactive_is_horizon_zero_equivalent(self):
