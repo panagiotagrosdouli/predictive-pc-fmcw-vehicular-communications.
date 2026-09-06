@@ -1,0 +1,51 @@
+name: Corrected staged diagnostics
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/corrected_staged_diagnostics.yml"
+      - "src/predictive_pc_fmcw/staged_experiments.py"
+      - "src/predictive_pc_fmcw/scheduling/**"
+      - "scripts/07_run_staged_experiments.py"
+      - "tests/test_staged_experiments.py"
+      - "configs/default.json"
+      - "configs/staged_experiments.json"
+  workflow_dispatch:
+
+concurrency:
+  group: corrected-staged-diagnostics-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  full-staged-diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e ".[dev]"
+      - name: Static checks
+        run: ruff check src tests scripts stages
+      - name: Unit tests
+        run: pytest -q
+      - name: Full five-seed corrected staged suite
+        run: >-
+          python scripts/07_run_staged_experiments.py
+          --config configs/default.json
+          --output results/corrected_staged_full
+          --seeds 20260827 20260828 20260829 20260830 20260831
+      - name: Verify frozen diagnostic cardinality
+        run: >-
+          python -c "import json, pathlib; p=pathlib.Path('results/corrected_staged_full/staged_experiment_manifest.json'); m=json.loads(p.read_text()); assert m['rows']==1350, m; assert len(m['seeds'])==5, m; assert 'predictive_utility' in m['schedulers'], m; print(json.dumps(m, indent=2))"
+      - name: Upload full corrected staged diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: corrected-staged-diagnostics
+          path: results/corrected_staged_full
+          if-no-files-found: error
+          retention-days: 14
