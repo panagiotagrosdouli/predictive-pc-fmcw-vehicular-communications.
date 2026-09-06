@@ -23,6 +23,20 @@ class AblationSpec:
 
 
 def paper_ablation_specs() -> tuple[AblationSpec, ...]:
+    """Return the paper-ablation design without duplicate scientific conditions.
+
+    ``trajectory_predictive`` is the zero-lifetime-urgency reference: the
+    predictive-utility and link-lifetime schedulers use the same
+    constant-acceleration forecast and base utility, so setting
+    ``lifetime_weight=0`` on the link-lifetime scheduler is behaviorally
+    equivalent to ``trajectory_predictive``.
+
+    ``full_channel`` is retained only as the explicitly named reference point
+    for the channel-model ablation plot. It is intentionally equivalent to the
+    default ``link_lifetime`` condition and must not be counted as an
+    independent scheduler ablation or statistical comparison.
+    """
+
     return (
         AblationSpec("no_prediction", "reactive_greedy"),
         AblationSpec("cv_predictor", "cv_predictive"),
@@ -35,9 +49,6 @@ def paper_ablation_specs() -> tuple[AblationSpec, ...]:
             "no_fairness_term", "predictive_utility", fairness_weight=0.0
         ),
         AblationSpec(
-            "no_link_lifetime_urgency", "link_lifetime", lifetime_weight=0.0
-        ),
-        AblationSpec(
             "range_only_channel", "link_lifetime", channel_mode="range_only"
         ),
         AblationSpec(
@@ -45,6 +56,7 @@ def paper_ablation_specs() -> tuple[AblationSpec, ...]:
             "link_lifetime",
             channel_mode="range_pointing",
         ),
+        # Intentional reference alias for the channel-model ablation only.
         AblationSpec("full_channel", "link_lifetime"),
         AblationSpec(
             "part_a_ber_lut", "link_lifetime", use_ber_lut=True
