@@ -1,0 +1,48 @@
+name: Fairness-weight Pareto sweep
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/10_run_fairness_weight_sweep.py'
+      - 'src/predictive_pc_fmcw/**'
+      - 'configs/default.json'
+      - '.github/workflows/fairness_weight_sweep.yml'
+  workflow_dispatch:
+
+jobs:
+  fairness-sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e '.[dev]'
+      - name: Static checks
+        run: ruff check src tests scripts
+      - name: Unit tests
+        run: pytest -q
+      - name: Run fairness-weight sweep
+        run: |
+          python scripts/10_run_fairness_weight_sweep.py \
+            --output artifacts/fairness_weight_sweep
+      - name: Verify sweep cardinality
+        run: |
+          python - <<'PY'
+          import csv
+          from pathlib import Path
+          path = Path('artifacts/fairness_weight_sweep/fairness_weight_sweep.csv')
+          rows = list(csv.DictReader(path.open()))
+          assert len(rows) == 140, len(rows)  # 4 regimes x 5 seeds x (1 reactive + 6 weights)
+          assert {r['policy'] for r in rows} == {
+              'reactive_greedy', 'deadline_aware_lifetime'
+          }
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fairness-weight-pareto-sweep
+          path: artifacts/fairness_weight_sweep/
+          retention-days: 14
