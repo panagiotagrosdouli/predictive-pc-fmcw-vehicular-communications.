@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 
 from predictive_pc_fmcw.config import load_config
@@ -18,11 +18,8 @@ from predictive_pc_fmcw.synthetic.baselines import (
     evaluate_synthetic_baselines,
     save_baseline_results,
 )
-from predictive_pc_fmcw.synthetic.dataset import (
-    DatasetBuildConfig,
-    build_dataset,
-    validate_dataset,
-)
+from predictive_pc_fmcw.synthetic.configuration import load_synthetic_protocol_config
+from predictive_pc_fmcw.synthetic.dataset import build_dataset, validate_dataset
 from predictive_pc_fmcw.synthetic.link_evaluation import (
     evaluate_synthetic_link_prediction,
     save_link_prediction_results,
@@ -37,8 +34,12 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", default="artifacts/synthetic_dataset_v1")
     parser.add_argument("--config", default="configs/default.json")
-    parser.add_argument("--scenarios-per-family", type=int, default=20)
-    parser.add_argument("--ood-scenarios-per-family", type=int, default=5)
+    parser.add_argument(
+        "--protocol-config",
+        default="configs/synthetic_dataset_v1.json",
+    )
+    parser.add_argument("--scenarios-per-family", type=int, default=None)
+    parser.add_argument("--ood-scenarios-per-family", type=int, default=None)
     parser.add_argument("--history-steps", type=int, default=20)
     parser.add_argument("--horizon-steps", type=int, default=10)
     parser.add_argument("--stride", type=int, default=5)
@@ -50,17 +51,33 @@ def main() -> None:
     args = parser.parse_args()
 
     root = Path(args.output)
+    if root.exists() and any(root.iterdir()):
+        raise FileExistsError(
+            f"refusing to overwrite synthetic pipeline directory: {root}"
+        )
     root.mkdir(parents=True, exist_ok=True)
     experiment = load_config(args.config)
-    dataset_config = DatasetBuildConfig(
-        scenarios_per_family=args.scenarios_per_family,
-        ood_scenarios_per_family=args.ood_scenarios_per_family,
-    )
+    loaded_protocol = load_synthetic_protocol_config(args.protocol_config)
+    dataset_config = loaded_protocol.build_config
+    overrides: dict[str, int] = {}
+    if args.scenarios_per_family is not None:
+        overrides["scenarios_per_family"] = args.scenarios_per_family
+    if args.ood_scenarios_per_family is not None:
+        overrides["ood_scenarios_per_family"] = args.ood_scenarios_per_family
+    if overrides:
+        dataset_config = replace(dataset_config, **overrides)
+
     manifest = build_dataset(
         root,
         config=dataset_config,
         link_config=experiment.link,
         traffic_config=experiment.traffic,
+    )
+    (root / "protocol_config.json").write_text(
+        Path(args.protocol_config).read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    (root / "protocol_config.sha256").write_text(
+        loaded_protocol.sha256 + "\n", encoding="utf-8"
     )
     dataset_validation = validate_dataset(root)
 
@@ -120,6 +137,7 @@ def main() -> None:
 
     report = {
         "protocol": "synthetic_dataset_v1",
+        "protocol_config_sha256": loaded_protocol.sha256,
         "dataset": dataset_validation,
         "training_export": training_validation,
         "development_baselines": [asdict(row) for row in baseline_results],
