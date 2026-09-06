@@ -79,7 +79,10 @@ def write_csv(path: Path, rows):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Fairness-weight Pareto sweep for deadline-aware predictive scheduling."
+        description=(
+            "Fairness-weight Pareto sweep for deadline-aware predictive "
+            "scheduling."
+        )
     )
     parser.add_argument("--config", default="configs/default.json")
     parser.add_argument("--output", default="artifacts/fairness_weight_sweep")
