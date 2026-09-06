@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "status": "FROZEN_PROSPECTIVE_DIAGNOSTIC_PROTOCOL",
+  "purpose": "Select a fairness weight on a development population, freeze it, then evaluate once on a disjoint holdout population.",
+  "predictive_policy": "deadline_aware_lifetime",
+  "reactive_policy": "reactive_greedy",
+  "candidate_fairness_weights": [0.0, 0.05, 0.1, 0.15, 0.2, 0.3],
+  "development_seeds": [20260901, 20260902, 20260903, 20260904, 20260905, 20260906, 20260907, 20260908, 20260909, 20260910],
+  "holdout_seeds": [20261001, 20261002, 20261003, 20261004, 20261005, 20261006, 20261007, 20261008, 20261009, 20261010, 20261011, 20261012, 20261013, 20261014, 20261015, 20261016, 20261017, 20261018, 20261019, 20261020],
+  "regimes": [
+    {"name": "deadline_0p05", "kind": "deadline", "value": 0.05},
+    {"name": "deadline_0p5", "kind": "deadline", "value": 0.5},
+    {"name": "load_1p1", "kind": "load", "value": 1.1},
+    {"name": "snr_plus3", "kind": "snr_offset", "value": 3.0}
+  ],
+  "selection_rule": {
+    "primary_metric": "goodput_mbps",
+    "noninferiority_margin_mbps": 0.001,
+    "eligibility": "For every development regime, the mean paired goodput difference predictive-minus-reactive must be >= -0.001 Mbps.",
+    "objective": "Among eligible weights, maximize the minimum across development regimes of the mean paired demand-normalized Jain fairness difference predictive-minus-reactive.",
+    "tie_break_1": "Choose the candidate with the smaller mean paired P95 latency difference across development regimes.",
+    "tie_break_2": "Choose the smaller fairness weight.",
+    "failure_rule": "If no candidate is eligible, freeze no weight and report that the candidate family failed the prospective development gate. Do not inspect holdout outcomes for weight selection."
+  },
+  "holdout_rule": "Evaluate exactly the frozen development-selected weight and the reactive baseline on all holdout seeds and regimes. Do not alter the weight after holdout inspection.",
+  "evidence_note": "This protocol is designed to separate tuning from evaluation. It is not canonical WOMD evidence and does not remove the need for a larger independent final study."
+}
