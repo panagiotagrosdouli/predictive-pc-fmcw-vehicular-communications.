@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "status": "FROZEN_PROSPECTIVE_DIAGNOSTIC_PROTOCOL",
+  "purpose": "Select a current-service guard on a fresh development population, freeze it, then evaluate once on a disjoint fresh holdout population.",
+  "reactive_policy": "reactive_greedy",
+  "candidate_policies": [
+    {"name": "service_guarded_00", "guard_ratio": 0.0},
+    {"name": "service_guarded_80", "guard_ratio": 0.8},
+    {"name": "service_guarded_90", "guard_ratio": 0.9},
+    {"name": "service_guarded_95", "guard_ratio": 0.95},
+    {"name": "service_guarded_100", "guard_ratio": 1.0}
+  ],
+  "scheduler_overrides": {"fairness_weight": 0.0},
+  "development_seeds": [20261101, 20261102, 20261103, 20261104, 20261105, 20261106, 20261107, 20261108, 20261109, 20261110],
+  "holdout_seeds": [20261201, 20261202, 20261203, 20261204, 20261205, 20261206, 20261207, 20261208, 20261209, 20261210, 20261211, 20261212, 20261213, 20261214, 20261215, 20261216, 20261217, 20261218, 20261219, 20261220],
+  "regimes": [
+    {"name": "deadline_0p05", "kind": "deadline", "value": 0.05},
+    {"name": "deadline_0p5", "kind": "deadline", "value": 0.5},
+    {"name": "load_1p1", "kind": "load", "value": 1.1},
+    {"name": "snr_plus3", "kind": "snr_offset", "value": 3.0}
+  ],
+  "selection_rule": {
+    "primary_metric": "goodput_mbps",
+    "noninferiority_margin_mbps": 0.001,
+    "eligibility": "For every development regime, the mean paired candidate-minus-reactive goodput difference must be >= -0.001 Mbps.",
+    "objective": "Among eligible candidates, maximize the minimum across development regimes of the mean paired candidate-minus-reactive goodput difference.",
+    "tie_break_1": "Choose the candidate with the smaller mean paired P95 latency difference across development regimes.",
+    "tie_break_2": "Choose the smaller guard ratio.",
+    "failure_rule": "If no candidate is eligible, freeze no candidate and report that the current-service guard family failed the prospective development gate. Do not inspect holdout outcomes for selection."
+  },
+  "holdout_rule": "Evaluate exactly the frozen development-selected policy and reactive baseline on all holdout seeds and regimes. Do not alter the guard ratio after holdout inspection.",
+  "evidence_note": "This is a fresh prospective synthetic diagnostic motivated by the development-only high-load mechanism audit. It is not canonical WOMD evidence or final publication inference."
+}
