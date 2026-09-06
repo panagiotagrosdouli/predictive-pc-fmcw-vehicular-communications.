@@ -1,0 +1,56 @@
+name: Prospective current-service guard selection
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'configs/service_guard_selection_protocol.json'
+      - 'configs/service_guard_holdout_analysis_protocol.json'
+      - 'scripts/13_run_prospective_service_guard_selection.py'
+      - '.github/workflows/prospective_service_guard_selection.yml'
+      - 'src/predictive_pc_fmcw/**'
+      - 'tests/test_service_guarded_scheduler.py'
+      - 'configs/default.json'
+  workflow_dispatch:
+
+jobs:
+  prospective-service-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e '.[dev]'
+      - name: Static checks
+        run: ruff check src tests scripts
+      - name: Unit tests
+        run: pytest -q
+      - name: Run frozen development and holdout protocol
+        run: |
+          python scripts/13_run_prospective_service_guard_selection.py \
+            --protocol configs/service_guard_selection_protocol.json \
+            --output artifacts/prospective_service_guard_selection
+      - name: Verify prospective cardinality
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          p = json.loads(Path(
+              'artifacts/prospective_service_guard_selection/'
+              'prospective_service_guard_selection.json'
+          ).read_text())
+          assert len(p['development_rows']) == 200
+          if p['selected_candidate'] is None:
+              assert len(p['holdout_rows']) == 0
+          else:
+              assert len(p['holdout_rows']) == 80
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prospective-current-service-guard
+          path: artifacts/prospective_service_guard_selection/
+          retention-days: 14
