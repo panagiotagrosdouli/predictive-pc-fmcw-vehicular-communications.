@@ -157,12 +157,9 @@ class LinkLifetimeScheduler(PredictiveUtilityScheduler):
     """Predictive utility with packet-aware link-expiry urgency.
 
     A closing link is urgent only when it is expected to disappear before the
-    head-of-line packet's own deadline.  If the packet deadline arrives first,
+    head-of-line packet's own deadline. If the packet deadline arrives first,
     the base deadline term already represents the relevant urgency and the
-    lifetime term must not double-count it.  This separates link urgency from
-    packet urgency and prevents a large queue on a merely closing link from
-    dominating the score when serving it early has no deadline-preservation
-    value.
+    lifetime term must not double-count it.
     """
 
     name: str = "link_lifetime"
@@ -177,9 +174,6 @@ class LinkLifetimeScheduler(PredictiveUtilityScheduler):
         )
         queue = context.queue_lengths / max(1, int(context.queue_lengths.max()))
         currently_usable = (~context.current_outage).astype(float)
-
-        # Link urgency is causal packet-preservation urgency only when the
-        # predicted service opportunity expires before the oldest packet does.
         finite_deadline = np.isfinite(context.time_to_deadline)
         link_limited = finite_deadline & (lifetime < context.time_to_deadline)
         return (
@@ -192,6 +186,63 @@ class LinkLifetimeScheduler(PredictiveUtilityScheduler):
     def _score(self, context: SchedulerContext) -> NDArray[np.float64]:
         scores = super()._score(context)
         return scores + self.config.lifetime_weight * self._lifetime_urgency(context)
+
+
+@dataclass(frozen=True)
+class DeadlineAwareLifetimeScheduler(LinkLifetimeScheduler):
+    """Blend current packet utility with predictive link utility by deadline slack.
+
+    The predictive horizon should not dominate packets that expire before that
+    horizon can matter. For an oldest-packet deadline of one slot or less, the
+    score is purely current-state packet utility. As deadline slack grows toward
+    the prediction horizon, the scheduler smoothly recovers the full
+    LinkLifetimeScheduler score. Infinite deadlines use the full predictive
+    score. This is a diagnostic mechanism, not a claim of optimality.
+    """
+
+    name: str = "deadline_aware_lifetime"
+    forecast_mode: str = "constant_acceleration"
+
+    @staticmethod
+    def _prediction_weight(context: SchedulerContext) -> NDArray[np.float64]:
+        horizon = context.predicted_goodput_bps.shape[1]
+        deadline = context.time_to_deadline.astype(np.float64)
+        weight = np.ones(context.vehicles, dtype=np.float64)
+        finite = np.isfinite(deadline)
+        scale = max(1, horizon - 1)
+        weight[finite] = np.clip((deadline[finite] - 1.0) / scale, 0.0, 1.0)
+        return weight
+
+    def _current_packet_score(
+        self, context: SchedulerContext
+    ) -> NDArray[np.float64]:
+        queue = context.queue_lengths / max(1, int(context.queue_lengths.max()))
+        current_goodput = context.current_goodput_bps / context.data_rate_bps
+        deadline = np.where(
+            np.isfinite(context.time_to_deadline),
+            1.0 / (1.0 + context.time_to_deadline),
+            0.0,
+        )
+        mean_delivered = max(float(context.delivered_bits.mean()), 1.0)
+        fairness = 1.0 / (0.25 + context.delivered_bits / mean_delivered)
+        scores = (
+            self.config.goodput_weight * current_goodput
+            - self.config.outage_weight * context.current_outage.astype(float)
+            + self.config.queue_weight * queue
+            + self.config.deadline_weight * deadline
+            + self.config.fairness_weight * fairness
+        )
+        if context.previous_vehicle is not None:
+            switching = np.ones(context.vehicles, dtype=np.float64)
+            switching[context.previous_vehicle] = 0.0
+            scores -= self.config.switching_weight * switching
+        return scores
+
+    def _score(self, context: SchedulerContext) -> NDArray[np.float64]:
+        current_score = self._current_packet_score(context)
+        predictive_score = super()._score(context)
+        weight = self._prediction_weight(context)
+        return (1.0 - weight) * current_score + weight * predictive_score
 
 
 @dataclass(frozen=True)
@@ -219,6 +270,7 @@ def build_scheduler(name: str, config: SchedulerConfig, seed: int):
         "learned_predictive": lambda: LearnedPredictiveScheduler(config),
         "predictive_utility": lambda: PredictiveUtilityScheduler(config),
         "link_lifetime": lambda: LinkLifetimeScheduler(config),
+        "deadline_aware_lifetime": lambda: DeadlineAwareLifetimeScheduler(config),
         "oracle": lambda: OracleScheduler(config),
     }
     try:
