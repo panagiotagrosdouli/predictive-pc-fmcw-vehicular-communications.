@@ -85,6 +85,9 @@ def select_weight(rows, protocol):
             value["mean_delta_goodput_mbps"] >= -margin
             for value in by_regime.values()
         )
+        latency_deltas = [
+            value["mean_delta_p95_latency_ms"] for value in by_regime.values()
+        ]
         candidates.append(
             {
                 "fairness_weight": float(weight),
@@ -92,11 +95,7 @@ def select_weight(rows, protocol):
                 "worst_regime_fairness_gain": min(
                     value["mean_delta_fairness"] for value in by_regime.values()
                 ),
-                "mean_delta_p95_latency_ms": float(
-                    np.mean(
-                        [value["mean_delta_p95_latency_ms"] for value in by_regime.values()]
-                    )
-                ),
+                "mean_delta_p95_latency_ms": float(np.mean(latency_deltas)),
                 "regimes": by_regime,
             }
         )
