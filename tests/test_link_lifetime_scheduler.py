@@ -10,8 +10,14 @@ from predictive_pc_fmcw.scheduling.policies import LinkLifetimeScheduler
 def context(*, lifetime, deadline, queue=None, outage=None):
     lifetime = np.asarray(lifetime, dtype=np.int64)
     vehicles = lifetime.size
-    queue = np.asarray(queue if queue is not None else [10] * vehicles, dtype=np.int64)
-    outage = np.asarray(outage if outage is not None else [False] * vehicles, dtype=bool)
+    queue = np.asarray(
+        queue if queue is not None else [10] * vehicles,
+        dtype=np.int64,
+    )
+    outage = np.asarray(
+        outage if outage is not None else [False] * vehicles,
+        dtype=bool,
+    )
     horizon = 10
     return SchedulerContext(
         slot=5,
