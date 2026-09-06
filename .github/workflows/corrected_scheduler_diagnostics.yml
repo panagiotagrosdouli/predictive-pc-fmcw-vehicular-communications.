@@ -1,0 +1,64 @@
+name: Corrected scheduler diagnostics
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/corrected_scheduler_diagnostics.yml"
+      - "src/predictive_pc_fmcw/scheduling/**"
+      - "src/predictive_pc_fmcw/ablations.py"
+      - "tests/test_link_lifetime_scheduler.py"
+      - "tests/test_ablations.py"
+      - "configs/default.json"
+      - "configs/experiment_matrix.json"
+  workflow_dispatch:
+
+concurrency:
+  group: corrected-scheduler-diagnostics-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e ".[dev]"
+      - name: Static checks
+        run: ruff check src tests scripts stages
+      - name: Unit tests
+        run: pytest -q
+      - name: Corrected scheduler benchmark
+        run: >-
+          pcfmcw benchmark
+          --config configs/default.json
+          --output results/corrected_scheduler_benchmark
+          --schedulers reactive_greedy predictive_utility link_lifetime oracle
+      - name: Corrected paper ablation suite
+        run: >-
+          pcfmcw paper-ablation
+          --config configs/default.json
+          --ber-lut artifacts/paper_final/02_link/dbpsk_ber_lut.csv
+          --output results/corrected_paper_ablations
+      - name: Quick operating-region matrix
+        run: >-
+          pcfmcw matrix
+          --config configs/default.json
+          --matrix configs/experiment_matrix.json
+          --output results/corrected_matrix_quick
+          --quick
+      - name: Upload corrected diagnostic artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: corrected-scheduler-diagnostics
+          path: |
+            results/corrected_scheduler_benchmark
+            results/corrected_paper_ablations
+            results/corrected_matrix_quick
+          if-no-files-found: error
+          retention-days: 14
