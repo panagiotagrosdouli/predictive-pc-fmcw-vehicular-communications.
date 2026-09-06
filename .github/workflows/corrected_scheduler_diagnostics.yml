@@ -9,6 +9,7 @@ on:
       - "src/predictive_pc_fmcw/scheduling/**"
       - "src/predictive_pc_fmcw/ablations.py"
       - "tests/test_link_lifetime_scheduler.py"
+      - "tests/test_traffic_and_schedulers.py"
       - "tests/test_ablations.py"
       - "configs/default.json"
       - "configs/experiment_matrix.json"
