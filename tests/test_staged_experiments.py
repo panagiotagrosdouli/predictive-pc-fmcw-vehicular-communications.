@@ -1,7 +1,10 @@
 import unittest
 
 from predictive_pc_fmcw.config import ExperimentConfig
-from predictive_pc_fmcw.staged_experiments import _staged_settings
+from predictive_pc_fmcw.staged_experiments import (
+    STAGED_SCHEDULERS,
+    _staged_settings,
+)
 
 
 class StagedExperimentTest(unittest.TestCase):
@@ -25,6 +28,23 @@ class StagedExperimentTest(unittest.TestCase):
                 current.benchmark.duration_s, config.benchmark.duration_s
             )
             self.assertEqual(current.traffic.deadline_s, config.traffic.deadline_s)
+
+    def test_corrected_staged_design_has_45_settings_and_six_policies(self):
+        settings = _staged_settings(ExperimentConfig(), seed=1)
+        self.assertEqual(len(settings), 45)
+        self.assertEqual(
+            STAGED_SCHEDULERS,
+            (
+                "reactive_greedy",
+                "proportional_fair",
+                "kalman_predictive",
+                "predictive_utility",
+                "link_lifetime",
+                "oracle",
+            ),
+        )
+        for _, _, current in settings:
+            self.assertEqual(current.benchmark.schedulers, STAGED_SCHEDULERS)
 
 
 if __name__ == "__main__":
