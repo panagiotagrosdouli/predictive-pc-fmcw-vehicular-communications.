@@ -17,9 +17,44 @@ it is **not** the separate joint beam/ADB project.
 
 ## Research questions
 
-1. In which operating regions does motion prediction improve scheduling?
-2. Does lower ADE/FDE imply better SNR, outage, link-lifetime and goodput fidelity?
-3. Can communication-aware GRU training improve downstream packet delivery?
+The project is organized around a primary systems thesis:
+
+> **Determine when causal trajectory prediction has real packet-level
+> communication value in PC-FMCW/DPSK vehicular optical scheduling, and whether
+> geometric forecasting accuracy is a reliable proxy for downstream
+> communication performance.**
+
+The core research questions are:
+
+1. **RQ1 — From trajectory accuracy to link accuracy:** Does lower ADE/FDE imply better prediction of the future optical link, including range/bearing, SNR, outage and link lifetime?
+2. **RQ2 — From link accuracy to packet utility:** Does better future-link prediction actually improve packet-level outcomes such as goodput, PDR, latency, deadline satisfaction, queue behavior and fairness?
+3. **RQ3 — Operating regions:** Under which mobility, prediction-horizon, traffic-load, deadline, FoV, sensing-noise and channel conditions does predictive scheduling help, become neutral or hurt relative to reactive scheduling?
+
+A secondary extension asks whether communication-aware GRU objectives improve the
+prediction-to-communication translation compared with classical predictors. The
+GRU is therefore treated as a learned extension and ablation tool, not as the
+central scientific novelty.
+
+The central mechanism under test is:
+
+```text
+trajectory accuracy
+        -> future-link fidelity
+        -> packet-level communication utility
+```
+
+The project explicitly does **not** assume that improvement propagates through
+all three layers. In particular, it tests whether
+
+```text
+better ADE/FDE != better link prediction != better scheduling performance
+```
+
+and whether predictive schedulers exhibit identifiable
+**helpful / neutral / harmful operating regions**. One specific failure
+mechanism of interest is that **link urgency is not necessarily packet urgency**:
+a receiver whose optical link is about to disappear may not own the packet with
+the tightest deadline.
 
 ```mermaid
 flowchart LR
@@ -218,43 +253,4 @@ tests/                         regression and scientific gates
 artifacts/paper_final/         canonical stage-aligned evidence
 paper/                         manuscript source
 notebooks/                     Colab GPU/data-acquisition operator workflow
-reference/                     supplied-work provenance; not copied stage code
 ```
-
-See [`docs/REPOSITORY_ARCHITECTURE.md`](docs/REPOSITORY_ARCHITECTURE.md) for
-stage ownership, forbidden operations and the data → prediction → link →
-scheduler → statistics → release flow.
-
-## Scientific guardrails
-
-- WOMD v1.3.1 protocol is frozen.
-- No future information enters deployable decisions.
-- Scenario overlap across data partitions is rejected.
-- Hyperparameters are selected on development only; official validation is not model-selection data.
-- Stage 4 is exactly four objectives × five frozen seeds.
-- Stage 6 is exactly eight scheduler families × five paired traffic seeds.
-- Schedulers receive paired traffic and channel randomness.
-- Packet success uses the ground-truth-derived link only to realize/evaluate outcomes.
-- WOMD scenario/episode is the independent statistical unit.
-- Confirmatory comparisons use scenario-clustered uncertainty and multiplicity control.
-- Finite zero-error Monte Carlo is not evidence that the true BER is exactly zero.
-- Optical power is model-based unless measurements are supplied.
-- Negative results and latency/reliability trade-offs remain visible.
-- Frozen Stage-2 science is not changed for organizational convenience.
-
-## Start here
-
-- [Repository architecture](docs/REPOSITORY_ARCHITECTURE.md)
-- [Executable stage workspace](stages)
-- [Greek execution guide](docs/STAGED_EXECUTION_GR.md)
-- [Scientific audit and plan](docs/SCIENTIFIC_AUDIT_AND_PLAN.md)
-- [WOMD audit](docs/WOMD_DATASET_AUDIT.md)
-- [Data provenance](docs/DATA_PROVENANCE.md)
-- [2026 implementation roadmap](docs/ROADMAP_IMPLEMENTATION_2026.md)
-
-## Publication status
-
-This is a tested research implementation and a frozen publication protocol,
-not a license to infer completion from file existence. Stage 8 requires the
-20-checkpoint archive, untouched official-validation results, paired packet
-experiments, scenario-clustered statistics and a clean reproducibility release.
