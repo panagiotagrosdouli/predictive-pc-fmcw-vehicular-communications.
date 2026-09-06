@@ -47,6 +47,18 @@ This repository contains the dataset-free simulation protocol and execution infr
 
 None are claimed yet. Development artifacts are diagnostic/model-selection outputs and must not be presented as final held-out evidence.
 
+## Executed corrected-scheduler diagnostics — noncanonical
+
+The packet-aware lifetime-urgency correction has now passed repository CI and a dedicated diagnostic workflow. These executions are **EXECUTED/DIAGNOSTIC**, synthetic, and noncanonical; they do not satisfy Stage 6 or the publication freeze.
+
+At the default 12-episode synthetic reference condition, corrected Link-Lifetime versus Reactive shows only a small aggregate-goodput difference (+0.0141 Mbps; paired bootstrap interval crosses zero), a small PDR increase, and a small reduction in deadline misses. In contrast, P95 latency is worse by about 266 ms and this tail-latency penalty is consistent across the paired episodes, while demand-normalized Jain fairness improves by about 0.028. Predictive Utility and Oracle show nearly the same latency/fairness trade-off, so the observed tail-latency cost is not attributable solely to the lifetime-urgency term.
+
+The corrected paper-ablation diagnostic further shows that removing the fairness term raises aggregate goodput and materially reduces P95 latency relative to the predictive policies, while reducing fairness. This is mechanism evidence for an objective trade-off rather than evidence that prediction is intrinsically harmful. The same diagnostic also shows large sensitivity to the channel/BER modeling choice, so scheduler conclusions must not be inferred from cross-channel comparisons.
+
+The quick operating-region matrix uses only two independent seeds and is therefore descriptive only. Its current Link-Lifetime aggregate goodput difference versus Reactive is approximately neutral at offered load 0.35 and negative on average at offered load 0.55. No inferential HELP/HURT claim is permitted from this quick matrix.
+
+A decision-level diagnostic has also been added to measure how often Link-Lifetime actually changes the selected receiver relative to Predictive Utility, and how often Oracle information changes decisions relative to Link-Lifetime. Those outputs are mechanism diagnostics only and must remain separate from official publication evidence.
+
 ## Hypothesis status
 
 **UNEVALUATED.** No PASS/FAIL/MIXED conclusion is permitted until the frozen held-out, OOD, scheduling, robustness/operating-region, and statistical pipeline has completed. Negative or mixed results must remain visible.
