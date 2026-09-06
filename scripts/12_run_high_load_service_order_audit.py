@@ -173,7 +173,9 @@ def paired_disagreements(reactive, predictive):
                 "reactive_vehicle": r["vehicle"],
                 "predictive_vehicle": p["vehicle"],
                 "delta_queue": p["queue"] - r["queue"],
-                "delta_hol_deadline_steps": p["hol_deadline_steps"] - r["hol_deadline_steps"],
+                "delta_hol_deadline_steps": (
+                    p["hol_deadline_steps"] - r["hol_deadline_steps"]
+                ),
                 "delta_actual_snr_db": p["actual_snr_db"] - r["actual_snr_db"],
                 "delta_current_goodput_mbps": (
                     p["current_goodput_mbps"] - r["current_goodput_mbps"]
