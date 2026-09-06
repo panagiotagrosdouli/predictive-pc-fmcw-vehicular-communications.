@@ -29,7 +29,11 @@ def _run_condition(
 ) -> dict[str, object]:
     outputs = run_synthetic_benchmark(config, scheduler_names=POLICIES)
     by_key = {
-        (output.metrics.scenario_id, int(output.metrics.seed), output.metrics.scheduler): output
+        (
+            output.metrics.scenario_id,
+            int(output.metrics.seed),
+            output.metrics.scheduler,
+        ): output
         for output in outputs
     }
     episode_keys = sorted(
@@ -121,7 +125,9 @@ def _run_condition(
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Measure when lifetime/oracle information changes scheduling decisions."
+        description=(
+            "Measure when lifetime/oracle information changes scheduling decisions."
+        )
     )
     parser.add_argument("--config", default="configs/default.json")
     parser.add_argument(
