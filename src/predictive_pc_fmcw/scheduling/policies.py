@@ -246,6 +246,45 @@ class DeadlineAwareLifetimeScheduler(LinkLifetimeScheduler):
 
 
 @dataclass(frozen=True)
+class ServiceGuardedPredictiveScheduler(DeadlineAwareLifetimeScheduler):
+    """Permit predictive reordering only when current service stays competitive.
+
+    The predictive candidate is retained when its current-service proxy is at
+    least ``guard_ratio`` times the best currently available proxy. Otherwise
+    the scheduler falls back to the current-service choice. This targets the
+    congestion mechanism observed in the development-only service-order audit.
+    """
+
+    guard_ratio: float = 0.9
+    name: str = "service_guarded_predictive"
+
+    @staticmethod
+    def _current_service_proxy(context: SchedulerContext) -> NDArray[np.float64]:
+        queue_scale = context.queue_lengths / max(1, int(context.queue_lengths.max()))
+        service = (
+            context.current_goodput_bps / context.data_rate_bps
+        ) * (0.25 + 0.75 * queue_scale)
+        return np.where(context.current_outage, 0.0, service)
+
+    def select(self, context: SchedulerContext) -> SchedulerDecision:
+        eligible = eligible_mask(context)
+        predictive = choose_best(self._score(context), eligible, self.name)
+        if predictive.vehicle is None:
+            return predictive
+
+        service = self._current_service_proxy(context)
+        current = choose_best(service, eligible, self.name)
+        if current.vehicle is None:
+            return predictive
+
+        best_service = float(service[current.vehicle])
+        predicted_service = float(service[predictive.vehicle])
+        if best_service <= 0.0 or predicted_service >= self.guard_ratio * best_service:
+            return predictive
+        return SchedulerDecision(current.vehicle, service, self.name)
+
+
+@dataclass(frozen=True)
 class OracleScheduler(LinkLifetimeScheduler):
     """Perfect-future information reference using the same heuristic utility."""
 
@@ -271,6 +310,21 @@ def build_scheduler(name: str, config: SchedulerConfig, seed: int):
         "predictive_utility": lambda: PredictiveUtilityScheduler(config),
         "link_lifetime": lambda: LinkLifetimeScheduler(config),
         "deadline_aware_lifetime": lambda: DeadlineAwareLifetimeScheduler(config),
+        "service_guarded_00": lambda: ServiceGuardedPredictiveScheduler(
+            config, guard_ratio=0.00, name="service_guarded_00"
+        ),
+        "service_guarded_80": lambda: ServiceGuardedPredictiveScheduler(
+            config, guard_ratio=0.80, name="service_guarded_80"
+        ),
+        "service_guarded_90": lambda: ServiceGuardedPredictiveScheduler(
+            config, guard_ratio=0.90, name="service_guarded_90"
+        ),
+        "service_guarded_95": lambda: ServiceGuardedPredictiveScheduler(
+            config, guard_ratio=0.95, name="service_guarded_95"
+        ),
+        "service_guarded_100": lambda: ServiceGuardedPredictiveScheduler(
+            config, guard_ratio=1.00, name="service_guarded_100"
+        ),
         "oracle": lambda: OracleScheduler(config),
     }
     try:
