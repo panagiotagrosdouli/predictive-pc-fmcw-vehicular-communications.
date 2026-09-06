@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "status": "FROZEN_PROSPECTIVE_HOLDOUT_ANALYSIS_PROTOCOL",
+  "purpose": "Precommit the statistical interpretation of the untouched holdout evaluation before inspecting holdout outcomes.",
+  "paired_unit": "holdout seed within operating regime; each seed deterministically defines the matched synthetic mobility scenario and traffic trace for predictive and reactive policies",
+  "primary_comparison": "deadline_aware_lifetime at the development-selected frozen fairness weight minus reactive_greedy",
+  "primary_metric": "goodput_mbps",
+  "regimes": ["deadline_0p05", "deadline_0p5", "load_1p1", "snr_plus3"],
+  "holdout_n_per_regime": 20,
+  "practical_margin_mbps": 0.001,
+  "interval": {
+    "method": "paired percentile bootstrap over seed-level differences",
+    "confidence_level": 0.95,
+    "resamples": 100000,
+    "analysis_rng_seed": 20260906
+  },
+  "classification": {
+    "HELP": "95% bootstrap CI lower bound > +0.001 Mbps",
+    "HURT": "95% bootstrap CI upper bound < -0.001 Mbps",
+    "NEUTRAL_OR_UNCERTAIN": "otherwise"
+  },
+  "multiplicity": {
+    "confirmatory_tests": "paired Wilcoxon signed-rank tests on goodput for the four regimes, when defined",
+    "correction": "Holm across the four regime-level primary tests"
+  },
+  "effect_sizes": ["paired Cohen dz", "paired win fraction"],
+  "secondary_metrics": ["pdr", "demand_normalized_fairness", "p95_latency_ms"],
+  "secondary_interpretation": "descriptive and mechanism-supporting; do not override the primary goodput classification",
+  "guardrails": [
+    "Do not alter the selected fairness weight after holdout inspection.",
+    "Do not redefine regimes, seeds, practical margin, confidence level, bootstrap count, or classification thresholds after holdout inspection.",
+    "If the development gate selected no weight, do not inspect holdout outcomes for selection.",
+    "Treat this as executed diagnostic synthetic evidence, not canonical WOMD evidence or final publication inference."
+  ]
+}
