@@ -15,6 +15,7 @@ POLICIES = (
     "reactive_greedy",
     "predictive_utility",
     "link_lifetime",
+    "deadline_aware_lifetime",
     "oracle",
 )
 REGIMES = (
@@ -27,7 +28,9 @@ SEEDS = (20260827, 20260828, 20260829, 20260830, 20260831)
 PAIRS = (
     ("reactive_greedy", "predictive_utility"),
     ("predictive_utility", "link_lifetime"),
-    ("link_lifetime", "oracle"),
+    ("link_lifetime", "deadline_aware_lifetime"),
+    ("reactive_greedy", "deadline_aware_lifetime"),
+    ("deadline_aware_lifetime", "oracle"),
     ("reactive_greedy", "link_lifetime"),
 )
 AGREEMENT_METRICS = (
@@ -207,9 +210,10 @@ def main():
             }
 
     payload = {
-        "schema_version": 1,
+        "schema_version": 2,
         "evidence_tier": "EXECUTED_DIAGNOSTIC",
         "seeds": list(SEEDS),
+        "policies": list(POLICIES),
         "regimes": summary,
     }
     (output_dir / "decision_audit_summary.json").write_text(
