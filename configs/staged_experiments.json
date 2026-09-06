@@ -1,7 +1,20 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "design": "one-axis-at-a-time around configs/default.json",
+  "evidence_tier": "EXECUTED_DIAGNOSTIC when run outside artifacts/paper_final",
   "independent_seeds": [20260827, 20260828, 20260829, 20260830, 20260831],
+  "schedulers": [
+    "reactive_greedy",
+    "proportional_fair",
+    "kalman_predictive",
+    "predictive_utility",
+    "link_lifetime",
+    "oracle"
+  ],
+  "mechanism_comparisons": [
+    "link_lifetime_vs_predictive_utility",
+    "oracle_vs_link_lifetime"
+  ],
   "studies": {
     "offered_load": [0.3, 0.5, 0.7, 0.9, 1.1],
     "prediction_horizon_s": [0.1, 0.3, 0.5, 1.0, 2.0],
@@ -21,10 +34,13 @@
       "range_bearing_assumed_covariance_R"
     ]
   },
+  "expected_full_rows": 1350,
   "invariants": [
     "physical episode duration remains fixed",
     "physical packet deadline remains fixed except in deadline study",
     "physical prediction horizon remains fixed in slot-duration study",
-    "traffic trace and transmission random numbers are shared across schedulers"
+    "traffic trace and transmission random numbers are shared across schedulers",
+    "packet success is evaluated on the realized ground-truth-derived link",
+    "oracle is evaluator-only and is not deployable"
   ]
 }
