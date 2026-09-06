@@ -154,19 +154,44 @@ class LearnedPredictiveScheduler(PredictiveUtilityScheduler):
 
 @dataclass(frozen=True)
 class LinkLifetimeScheduler(PredictiveUtilityScheduler):
+    """Predictive utility with packet-aware link-expiry urgency.
+
+    A closing link is urgent only when it is expected to disappear before the
+    head-of-line packet's own deadline.  If the packet deadline arrives first,
+    the base deadline term already represents the relevant urgency and the
+    lifetime term must not double-count it.  This separates link urgency from
+    packet urgency and prevents a large queue on a merely closing link from
+    dominating the score when serving it early has no deadline-preservation
+    value.
+    """
+
     name: str = "link_lifetime"
     forecast_mode: str = "constant_acceleration"
 
+    @staticmethod
+    def _lifetime_urgency(context: SchedulerContext) -> NDArray[np.float64]:
+        horizon = context.predicted_goodput_bps.shape[1]
+        lifetime = context.predicted_lifetime_steps.astype(np.float64)
+        closing_pressure = np.clip(
+            (horizon - lifetime) / max(1, horizon), 0.0, 1.0
+        )
+        queue = context.queue_lengths / max(1, int(context.queue_lengths.max()))
+        currently_usable = (~context.current_outage).astype(float)
+
+        # Link urgency is causal packet-preservation urgency only when the
+        # predicted service opportunity expires before the oldest packet does.
+        finite_deadline = np.isfinite(context.time_to_deadline)
+        link_limited = finite_deadline & (lifetime < context.time_to_deadline)
+        return (
+            closing_pressure
+            * queue
+            * currently_usable
+            * link_limited.astype(float)
+        )
+
     def _score(self, context: SchedulerContext) -> NDArray[np.float64]:
         scores = super()._score(context)
-        queue = context.queue_lengths / max(1, int(context.queue_lengths.max()))
-        horizon = context.predicted_goodput_bps.shape[1]
-        closing_pressure = np.clip(
-            (horizon - context.predicted_lifetime_steps) / max(1, horizon), 0.0, 1.0
-        )
-        currently_usable = (~context.current_outage).astype(float)
-        lifetime_urgency = closing_pressure * queue * currently_usable
-        return scores + self.config.lifetime_weight * lifetime_urgency
+        return scores + self.config.lifetime_weight * self._lifetime_urgency(context)
 
 
 @dataclass(frozen=True)
