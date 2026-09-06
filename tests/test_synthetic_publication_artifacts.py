@@ -25,7 +25,14 @@ def test_publication_contract_is_exactly_ten_figures_and_eight_tables() -> None:
         f"Figure{index}" for index in range(1, 11)
     ]
     assert [item.artifact_id for item in TABLES] == [
-        f"Table{index}" for index in range(1, 9)
+        "TableI",
+        "TableII",
+        "TableIII",
+        "TableIV",
+        "TableV",
+        "TableVI",
+        "TableVII",
+        "TableVIII",
     ]
 
 
