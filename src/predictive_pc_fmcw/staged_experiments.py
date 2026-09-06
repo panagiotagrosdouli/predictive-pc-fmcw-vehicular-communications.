@@ -14,6 +14,7 @@ STAGED_SCHEDULERS = (
     "reactive_greedy",
     "proportional_fair",
     "kalman_predictive",
+    "predictive_utility",
     "link_lifetime",
     "oracle",
 )
@@ -229,6 +230,43 @@ def run_staged_experiments(
     return rows
 
 
+def _paired_comparison(
+    selected: list[dict[str, object]],
+    proposed_scheduler: str,
+    reference_scheduler: str,
+) -> dict[str, Any]:
+    by_scheduler_seed = {
+        (str(row["scheduler"]), int(row["seed"])): row for row in selected
+    }
+    proposed_rows = [
+        row for row in selected if row["scheduler"] == proposed_scheduler
+    ]
+    metric_results: dict[str, Any] = {}
+    for metric, higher_is_better in METRIC_DIRECTIONS.items():
+        proposed = []
+        reference = []
+        clusters = []
+        for row in proposed_rows:
+            seed = int(row["seed"])
+            reference_row = by_scheduler_seed[(reference_scheduler, seed)]
+            proposed.append(float(row[metric]))
+            reference.append(float(reference_row[metric]))
+            clusters.append(seed)
+        metric_results[metric] = paired_metric_statistics(
+            proposed,
+            reference,
+            higher_is_better=higher_is_better,
+            clusters=clusters,
+        )
+    raw_p = [
+        metric_results[metric]["wilcoxon_p_value"] for metric in METRIC_DIRECTIONS
+    ]
+    adjusted = holm_adjusted_pvalues(raw_p)
+    for metric, value in zip(METRIC_DIRECTIONS, adjusted, strict=True):
+        metric_results[metric]["wilcoxon_holm_p_value"] = value
+    return metric_results
+
+
 def summarize_staged_experiments(
     rows: list[dict[str, object]],
 ) -> dict[str, Any]:
@@ -238,46 +276,27 @@ def summarize_staged_experiments(
         grouped.setdefault(key, []).append(row)
     summary: dict[str, Any] = {}
     for (study, setting), selected in sorted(grouped.items()):
-        by_scheduler_seed = {
-            (str(row["scheduler"]), int(row["seed"])): row for row in selected
-        }
+        scheduler_names = sorted({str(row["scheduler"]) for row in selected})
         comparisons: dict[str, Any] = {}
-        for scheduler in sorted({str(row["scheduler"]) for row in selected}):
+        for scheduler in scheduler_names:
             if scheduler == "reactive_greedy":
                 continue
-            scheduler_rows = [
-                row for row in selected if row["scheduler"] == scheduler
-            ]
-            metric_results: dict[str, Any] = {}
-            for metric, higher_is_better in METRIC_DIRECTIONS.items():
-                proposed = []
-                baseline = []
-                clusters = []
-                for row in scheduler_rows:
-                    seed = int(row["seed"])
-                    reference = by_scheduler_seed[("reactive_greedy", seed)]
-                    proposed.append(float(row[metric]))
-                    baseline.append(float(reference[metric]))
-                    clusters.append(seed)
-                metric_results[metric] = paired_metric_statistics(
-                    proposed,
-                    baseline,
-                    higher_is_better=higher_is_better,
-                    clusters=clusters,
-                )
-            raw_p = [
-                metric_results[metric]["wilcoxon_p_value"]
-                for metric in METRIC_DIRECTIONS
-            ]
-            adjusted = holm_adjusted_pvalues(raw_p)
-            for metric, value in zip(
-                METRIC_DIRECTIONS, adjusted, strict=True
-            ):
-                metric_results[metric]["wilcoxon_holm_p_value"] = value
-            comparisons[scheduler] = metric_results
+            comparisons[scheduler] = _paired_comparison(
+                selected, scheduler, "reactive_greedy"
+            )
+        mechanism_comparisons: dict[str, Any] = {}
+        if {"predictive_utility", "link_lifetime"}.issubset(scheduler_names):
+            mechanism_comparisons["link_lifetime_vs_predictive_utility"] = (
+                _paired_comparison(selected, "link_lifetime", "predictive_utility")
+            )
+        if {"link_lifetime", "oracle"}.issubset(scheduler_names):
+            mechanism_comparisons["oracle_vs_link_lifetime"] = _paired_comparison(
+                selected, "oracle", "link_lifetime"
+            )
         summary.setdefault(study, {})[setting] = {
             "independent_seeds": sorted({int(row["seed"]) for row in selected}),
             "comparisons_vs_reactive": comparisons,
+            "mechanism_comparisons": mechanism_comparisons,
         }
     return summary
 
@@ -305,14 +324,19 @@ def write_staged_artifacts(
     manifest_path.write_text(
         json.dumps(
             {
-                "schema_version": 1,
+                "schema_version": 2,
                 "design": "one-axis-at-a-time around frozen reference",
                 "rows": len(rows),
                 "studies": sorted({str(row["study"]) for row in rows}),
+                "schedulers": sorted({str(row["scheduler"]) for row in rows}),
                 "seeds": sorted({int(row["seed"]) for row in rows}),
                 "diagnostic_quick_run": all(
                     bool(row["diagnostic_quick_run"]) for row in rows
                 ),
+                "mechanism_pairs": [
+                    "link_lifetime_vs_predictive_utility",
+                    "oracle_vs_link_lifetime",
+                ],
             },
             indent=2,
         ),
