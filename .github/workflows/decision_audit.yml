@@ -6,6 +6,7 @@ on:
     paths:
       - 'scripts/08_run_decision_audit.py'
       - 'src/predictive_pc_fmcw/**'
+      - 'tests/test_deadline_aware_lifetime_scheduler.py'
       - 'configs/default.json'
       - '.github/workflows/decision_audit.yml'
   workflow_dispatch:
@@ -33,11 +34,14 @@ jobs:
           python - <<'PY'
           import csv
           from pathlib import Path
-          p=Path('artifacts/decision_audit/decision_agreement.csv')
-          rows=list(csv.DictReader(p.open()))
-          assert len(rows)==80, len(rows)  # 4 regimes x 5 seeds x 4 comparisons
-          s=list(csv.DictReader(Path('artifacts/decision_audit/chosen_state.csv').open()))
-          assert len(s)==80, len(s)  # 4 regimes x 5 seeds x 4 policies
+
+          comparisons = Path('artifacts/decision_audit/decision_agreement.csv')
+          rows = list(csv.DictReader(comparisons.open()))
+          assert len(rows) == 120, len(rows)  # 4 regimes x 5 seeds x 6 pairs
+
+          state = Path('artifacts/decision_audit/chosen_state.csv')
+          state_rows = list(csv.DictReader(state.open()))
+          assert len(state_rows) == 100, len(state_rows)  # 4 x 5 x 5 policies
           PY
       - uses: actions/upload-artifact@v4
         with:
