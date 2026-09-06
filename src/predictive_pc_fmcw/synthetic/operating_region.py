@@ -66,11 +66,20 @@ def validate_operating_region_protocol() -> None:
             raise ValueError("deadline sweep values must be positive")
 
 
+def validate_nominal_operating_config(config: ExperimentConfig) -> None:
+    """Fail closed if the nominal horizon drifts from the frozen heatmap label."""
+    if config.prediction_horizon_steps != 10:
+        raise ValueError(
+            "operating-region nominal configuration must use prediction horizon 10"
+        )
+
+
 def operating_region_protocol_manifest() -> dict[str, object]:
     validate_operating_region_protocol()
     return {
         "conditions": [asdict(condition) for condition in OPERATING_CONDITIONS],
         "design": "one_factor_at_a_time_around_frozen_nominal_configuration",
+        "nominal_prediction_horizon_steps": 10,
         "mobility_axes": (
             "speed_mps",
             "absolute_radial_velocity_mps",
@@ -125,6 +134,7 @@ def run_operating_region_sweep(
 ) -> dict[str, object]:
     """Run one-factor communication operating conditions on identical episodes."""
     validate_operating_region_protocol()
+    validate_nominal_operating_config(config)
     destination = Path(output_dir)
     manifest_path = destination / "operating_region_manifest.json"
     if manifest_path.exists():
@@ -176,6 +186,7 @@ def run_operating_region_sweep(
             "same_split_and_episode_composition": True,
             "same_paired_traffic_seed_set": True,
             "one_factor_at_a_time": True,
+            "nominal_horizon_verified_as_10_steps": True,
             "no_final_test_model_selection": True,
         },
     }
@@ -274,6 +285,11 @@ def analyze_operating_region(
     manifest = json.loads(
         (root / "operating_region_manifest.json").read_text(encoding="utf-8")
     )
+    protocol = manifest.get("protocol")
+    if not isinstance(protocol, dict):
+        raise ValueError("operating sweep manifest lacks protocol metadata")
+    if int(protocol.get("nominal_prediction_horizon_steps", -1)) != 10:
+        raise ValueError("operating sweep nominal horizon provenance is not 10 steps")
     dataset_root = Path(dataset_dir)
     condition_rows: list[dict[str, object]] = []
     for artifact in manifest["artifacts"]:

@@ -1,8 +1,11 @@
+import pytest
+
 from predictive_pc_fmcw.config import ExperimentConfig
 from predictive_pc_fmcw.synthetic.operating_region import (
     OPERATING_CONDITIONS,
     _condition_config,
     operating_region_protocol_manifest,
+    validate_nominal_operating_config,
     validate_operating_region_protocol,
 )
 
@@ -14,6 +17,7 @@ def test_operating_region_conditions_are_one_factor_at_a_time() -> None:
     assert len(names) == len(set(names))
     manifest = operating_region_protocol_manifest()
     assert manifest["mobility_axes_analyzed_at_episode_level"] is True
+    assert manifest["nominal_prediction_horizon_steps"] == 10
 
 
 def test_operating_condition_changes_only_requested_factor() -> None:
@@ -35,3 +39,11 @@ def test_horizon_sweep_never_exceeds_checkpoint_horizon() -> None:
     ]
     assert horizons
     assert max(horizons) <= 10
+
+
+def test_nominal_operating_config_requires_horizon_ten() -> None:
+    validate_nominal_operating_config(ExperimentConfig(prediction_horizon_steps=10))
+    with pytest.raises(ValueError, match="prediction horizon 10"):
+        validate_nominal_operating_config(
+            ExperimentConfig(prediction_horizon_steps=5)
+        )
