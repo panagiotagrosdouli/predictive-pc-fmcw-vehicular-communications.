@@ -9,7 +9,8 @@
 	synthetic-select-checkpoints synthetic-scheduling-heldout synthetic-scheduling-ood \
 	synthetic-stats-heldout synthetic-stats-ood synthetic-learned-heldout \
 	synthetic-learned-ood synthetic-robustness-heldout synthetic-robustness-ood \
-	synthetic-operating-heldout synthetic-operating-ood
+	synthetic-operating-heldout synthetic-operating-ood synthetic-scheduling-protocol \
+	synthetic-publication-manifest
 
 install:
 	python -m pip install -e ".[dev]"
@@ -123,6 +124,12 @@ synthetic-operating-heldout:
 synthetic-operating-ood:
 	PYTHONPATH=src python scripts/run_synthetic_operating_region_v1.py \
 		--split ood_test
+
+synthetic-scheduling-protocol:
+	PYTHONPATH=src python scripts/materialize_synthetic_scheduling_protocol_v1.py
+
+synthetic-publication-manifest:
+	PYTHONPATH=src python scripts/build_synthetic_publication_manifest_v1.py
 
 benchmark:
 	pcfmcw benchmark --config configs/default.json --output artifacts/synthetic_benchmark
