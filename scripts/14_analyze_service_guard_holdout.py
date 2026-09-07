@@ -19,14 +19,16 @@ from pathlib import Path
 import numpy as np
 from scipy import stats
 
-
 BOOTSTRAP_REPLICATES = 100_000
 BOOTSTRAP_SEED = 20260906
 PRACTICAL_MARGIN_MBPS = 0.001
 EXPECTED_REGIMES = ["deadline_0p05", "deadline_0p5", "load_1p1", "snr_plus3"]
 
 
-def percentile_ci(values: np.ndarray, rng: np.random.Generator) -> tuple[float, float]:
+def percentile_ci(
+    values: np.ndarray,
+    rng: np.random.Generator,
+) -> tuple[float, float]:
     n = len(values)
     indices = rng.integers(0, n, size=(BOOTSTRAP_REPLICATES, n))
     boot_means = values[indices].mean(axis=1)
@@ -63,9 +65,13 @@ def main() -> None:
     payload = json.loads(args.input.read_text())
     selected = payload.get("selected_candidate")
     if not selected:
-        raise SystemExit("Frozen development protocol selected no candidate; holdout analysis is invalid.")
+        raise SystemExit(
+            "Frozen development protocol selected no candidate; "
+            "holdout analysis is invalid."
+        )
     if selected.get("candidate_policy") != "service_guarded_80":
-        raise SystemExit(f"Unexpected frozen candidate: {selected.get('candidate_policy')}")
+        candidate_policy = selected.get("candidate_policy")
+        raise SystemExit(f"Unexpected frozen candidate: {candidate_policy}")
 
     rows = payload.get("holdout_rows", [])
     if len(rows) != 80:
@@ -88,10 +94,20 @@ def main() -> None:
     raw_p = []
 
     for regime in EXPECTED_REGIMES:
-        regime_rows = sorted(by_regime[regime], key=lambda row: int(row["seed"]))
-        delta = np.asarray([float(row["delta_goodput_mbps"]) for row in regime_rows])
+        regime_rows = sorted(
+            by_regime[regime],
+            key=lambda row: int(row["seed"]),
+        )
+        delta = np.asarray(
+            [float(row["delta_goodput_mbps"]) for row in regime_rows]
+        )
         ci_lo, ci_hi = percentile_ci(delta, rng)
-        wilcoxon = stats.wilcoxon(delta, zero_method="wilcox", alternative="two-sided", method="auto")
+        wilcoxon = stats.wilcoxon(
+            delta,
+            zero_method="wilcox",
+            alternative="two-sided",
+            method="auto",
+        )
         p_value = float(wilcoxon.pvalue)
         raw_p.append(p_value)
         sd = float(delta.std(ddof=1))
@@ -114,7 +130,7 @@ def main() -> None:
         )
 
     adjusted = holm_adjust(raw_p)
-    for result, p_holm in zip(results, adjusted):
+    for result, p_holm in zip(results, adjusted, strict=True):
         result["wilcoxon_p_holm"] = p_holm
 
     output = {
@@ -125,12 +141,19 @@ def main() -> None:
             "primary_metric": "delta_goodput_mbps",
             "bootstrap_replicates": BOOTSTRAP_REPLICATES,
             "bootstrap_seed": BOOTSTRAP_SEED,
-            "bootstrap_method": "paired percentile bootstrap of mean paired difference",
+            "bootstrap_method": (
+                "paired percentile bootstrap of mean paired difference"
+            ),
             "confidence_level": 0.95,
             "practical_margin_mbps": PRACTICAL_MARGIN_MBPS,
-            "classification_rule": "HELP if CI lower > +margin; HURT if CI upper < -margin; otherwise NEUTRAL_OR_UNCERTAIN",
+            "classification_rule": (
+                "HELP if CI lower > +margin; HURT if CI upper < -margin; "
+                "otherwise NEUTRAL_OR_UNCERTAIN"
+            ),
             "paired_test": "two-sided Wilcoxon signed-rank",
-            "multiplicity": "Holm across four predeclared primary regime comparisons",
+            "multiplicity": (
+                "Holm across four predeclared primary regime comparisons"
+            ),
             "effect_size": "paired Cohen dz",
         },
         "results": results,
