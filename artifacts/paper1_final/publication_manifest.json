@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "scope": "PAPER1",
+  "status": "PUBLICATION_PACKAGE_MANIFEST",
+  "package_head_expected_after_merge": "resolve from Git history; do not treat this field as an input hash",
+  "final_protocol": "configs/paper1_final_protocol.json",
+  "manuscript": "paper/paper1/manuscript/PAPER1_FINAL_DRAFT.md",
+  "completion_audit": "paper/paper1/PAPER1_COMPLETION_AUDIT.md",
+  "primary_statistics": "artifacts/paper1_final/primary_statistics.json",
+  "confirmatory_source": {
+    "workflow_run": 34055071988,
+    "head_sha": "769d461aa09d4a9d7af8d47c9536d6e2d5c08b30",
+    "artifact_id": 9995724323,
+    "artifact_name": "prospective-current-service-guard",
+    "artifact_digest": "sha256:041e93b097a21924fe3d7b37e4eeb6aaf8d54e1e2ff55f97f419bd81dac758df",
+    "artifact_expiry_warning": "GitHub Actions artifact retention is finite; the compact statistics/provenance summary is versioned in this package, while the original artifact digest remains authoritative for the executed raw bundle."
+  },
+  "canonical_part_a_link_inputs": [
+    {
+      "path": "artifacts/paper_final/02_link/dbpsk_ber_lut.csv",
+      "git_blob_sha": "3239f65136ed7fd485f6587fb04d2e13b2ce4b00",
+      "verified_sha256": "123ee98cf62e6991cfca2a72709beb46d99d055738281c302129c5fbcd6a80c3"
+    },
+    {
+      "path": "artifacts/paper_final/02_link/link_verification.json",
+      "git_blob_sha": "2d52140cdb5fb6ac5cba2c30c24f8bc0a0cc61e3",
+      "status": "PASS"
+    },
+    {
+      "path": "artifacts/paper_final/02_link/chirp_cluster_diagnostic.json",
+      "git_blob_sha": "470e141f112d315d9df701aeba53a9182f771a7c"
+    }
+  ],
+  "diagnostic_background_inputs": [
+    {
+      "path": "artifacts/corrected_v2/motion_baselines/forecast_summary.json",
+      "git_blob_sha": "8a677a9f8cc8e2f1989711cf7d05104525d66090",
+      "role": "classical trajectory-to-link translation; diagnostic background"
+    },
+    {
+      "path": "artifacts/corrected_v2/staged_experiments/staged_experiment_manifest.json",
+      "git_blob_sha": "bd75bcf660cd5a5c5d673146acf0f0e13f1ea6b6",
+      "role": "1125-row, five-seed operating-region diagnostic design"
+    },
+    {
+      "path": "artifacts/corrected_v2/paper_ablations/paper_ablation_summary.json",
+      "git_blob_sha": "8253a496ac602f7c48444f904ef52afc261a4b9d",
+      "role": "legacy ablation background; not primary inference"
+    },
+    {
+      "path": "docs/HIGH_LOAD_SERVICE_ORDER_AUDIT.md",
+      "git_blob_sha": "c90f8ac4b54acc916e5cc72da9b36a18828eff0b",
+      "role": "development-only mechanism audit motivating the service guard"
+    }
+  ],
+  "part_a_provenance": {
+    "path": "configs/part_a_physical_layer.json",
+    "git_blob_sha": "see repository object at package revision",
+    "upstream_commit": "44d62e3478e3818d1757b00971890f844cb032f7",
+    "notebook_sha256": "b5a80a6d3441de6d571db4f65b4a43ed4052cc2b3ccba935ad31b5dd51316ef3"
+  },
+  "latest_prepackage_ci": {
+    "workflow_run": 34122102978,
+    "head_sha": "778ef30f88efa1aba647102f0d2a3eb9e4591ea2",
+    "conclusion": "success",
+    "checks": ["ruff", "pytest", "stage entrypoints", "pcfmcw validate"]
+  },
+  "evidence_labels": {
+    "primary_holdout": "EXECUTED_DIAGNOSTIC / prospectively selected synthetic holdout",
+    "part_a_receiver_lut": "canonical verified model/receiver evidence",
+    "legacy_corrected_v2": "diagnostic/background",
+    "learned_gru_womd": "PAPER2 / excluded"
+  },
+  "claim_boundary": {
+    "measured_optical_channel": false,
+    "real_world_vehicular_validation": false,
+    "universal_prediction_superiority": false,
+    "paper1_university_part_b_ready": true,
+    "externally_validated_journal_claim": false
+  }
+}

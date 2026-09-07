@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "scope": "PAPER1",
+  "status": "FROZEN_PUBLICATION_PROTOCOL",
+  "title": "When Does Trajectory Prediction Help PC-FMCW/DPSK Vehicular Optical Scheduling?",
+  "research_question": "When, why, and under which operating regimes does causal trajectory/link prediction improve packet-level scheduling relative to reactive scheduling?",
+  "claim_boundary": {
+    "mobility_evidence": "controlled synthetic for the confirmatory service-guard holdout; legacy compact WOMD/proxy outputs are diagnostic only",
+    "optical_link": "PC-FMCW/DPSK-informed analytical/simulation model with a separately verified Part-A receiver BER LUT",
+    "measured_optical_channel": false,
+    "real_world_deployment": false,
+    "learned_gru_results_in_scope": false
+  },
+  "part_a_reference": {
+    "path": "configs/part_a_physical_layer.json",
+    "upstream_commit": "44d62e3478e3818d1757b00971890f844cb032f7",
+    "carrier_frequency_hz": 193400000000000.0,
+    "chirp_bandwidth_hz": 10000000000.0,
+    "chirp_duration_s": 0.00001,
+    "data_rate_bps": 1000000000.0,
+    "received_power_semantics": "normalized/model-based, not calibrated watts"
+  },
+  "reference_simulation": {
+    "config": "configs/default.json",
+    "slot_duration_s": 0.1,
+    "prediction_horizon_steps": 10,
+    "prediction_horizon_s": 1.0,
+    "episode_duration_s": 12.0,
+    "vehicles": 5,
+    "packet_bits": 12000,
+    "reference_snr_db": 18.0,
+    "field_of_view_deg": 70.0,
+    "offered_load": 0.72,
+    "deadline_s": 1.2,
+    "deadline_jitter_s": 0.4
+  },
+  "classical_predictors": [
+    "last_position",
+    "constant_velocity",
+    "constant_acceleration",
+    "kalman_cv",
+    "imm"
+  ],
+  "scheduler_context": [
+    "random",
+    "round_robin",
+    "reactive_greedy",
+    "proportional_fair",
+    "cv_predictive",
+    "kalman_predictive",
+    "imm_predictive",
+    "predictive_utility",
+    "link_lifetime",
+    "oracle"
+  ],
+  "confirmatory_method": {
+    "policy": "service_guarded_80",
+    "guard_ratio": 0.8,
+    "fairness_weight": 0.0,
+    "comparator": "reactive_greedy",
+    "selection_protocol": "configs/service_guard_selection_protocol.json",
+    "analysis_protocol": "configs/service_guard_holdout_analysis_protocol.json",
+    "development_seeds": [20261101, 20261102, 20261103, 20261104, 20261105, 20261106, 20261107, 20261108, 20261109, 20261110],
+    "holdout_seeds": [20261201, 20261202, 20261203, 20261204, 20261205, 20261206, 20261207, 20261208, 20261209, 20261210, 20261211, 20261212, 20261213, 20261214, 20261215, 20261216, 20261217, 20261218, 20261219, 20261220],
+    "regimes": [
+      {"name": "deadline_0p05", "kind": "deadline", "value": 0.05},
+      {"name": "deadline_0p5", "kind": "deadline", "value": 0.5},
+      {"name": "load_1p1", "kind": "load", "value": 1.1},
+      {"name": "snr_plus3", "kind": "snr_offset_db", "value": 3.0}
+    ],
+    "primary_endpoint": "paired candidate-minus-Reactive goodput_mbps within regime",
+    "independent_unit": "holdout seed within operating regime",
+    "pairing": "same deterministic synthetic mobility scenario and traffic trace for candidate and Reactive",
+    "bootstrap_replicates": 100000,
+    "bootstrap_seed": 20260906,
+    "confidence_level": 0.95,
+    "practical_margin_mbps": 0.001,
+    "paired_test": "two-sided Wilcoxon signed-rank",
+    "multiplicity": "Holm across four predeclared primary regime comparisons",
+    "effect_sizes": ["paired Cohen dz", "win/loss/tie fractions"],
+    "secondary_metrics": ["pdr", "demand_normalized_fairness", "p95_latency_ms"]
+  },
+  "evidence_policy": {
+    "confirmatory": "prospectively selected synthetic service-guard holdout only, with its original diagnostic label preserved",
+    "mechanism_background": [
+      "docs/HIGH_LOAD_SERVICE_ORDER_AUDIT.md",
+      "artifacts/corrected_v2/motion_baselines/forecast_summary.json",
+      "artifacts/corrected_v2/staged_experiments/staged_experiment_manifest.json",
+      "artifacts/corrected_v2/paper_ablations/paper_ablation_summary.json"
+    ],
+    "canonical_part_a_link": [
+      "artifacts/paper_final/02_link/dbpsk_ber_lut.csv",
+      "artifacts/paper_final/02_link/link_verification.json",
+      "artifacts/paper_final/02_link/chirp_cluster_diagnostic.json"
+    ],
+    "excluded_from_primary_inference": [
+      "learned GRU/WOMD results",
+      "compact WOMD proxy scheduling",
+      "five-seed staged sweeps",
+      "legacy ablation means",
+      "Oracle as a deployable policy"
+    ]
+  },
+  "required_interpretation": {
+    "positive": "Report all HELP regimes with confidence intervals, Holm-adjusted p-values and effect sizes.",
+    "negative": "Retain the high-load NEUTRAL_OR_UNCERTAIN result and its descriptive latency penalty.",
+    "no_universal_claim": true,
+    "oracle_label": "evaluator-only information reference, not a globally optimal offline scheduler"
+  }
+}
