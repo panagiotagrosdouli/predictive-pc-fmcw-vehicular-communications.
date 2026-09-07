@@ -46,12 +46,13 @@ Status vocabulary:
 
 ### Paper-1 statistical closure — REQUIRED
 
-- [ ] Parse/freeze the prospective current-service-guard result as a Paper-1 result artifact.
-- [ ] Apply the precommitted holdout analysis protocol exactly: paired 100k bootstrap, 95% CI, practical margin, paired Wilcoxon, Holm correction, paired Cohen dz and win fraction.
-- [ ] Report all predeclared regimes, including neutral/uncertain or harmful outcomes.
-- [ ] Report secondary PDR, P95 latency and demand-normalized fairness descriptively without turning them into undeclared primary endpoints.
-- [ ] Confirm independent unit and pairing at scenario/episode/seed level; do not treat packets/windows as independent samples.
-- [ ] Create a frozen Paper-1 statistics manifest with code commit, workflow run, artifact digest, seeds and analysis protocol.
+- [x] Parse/freeze the prospective current-service-guard result as a documented Paper-1 result.
+- [x] Implement the precommitted holdout analysis: paired 100k bootstrap, 95% CI, practical margin, paired Wilcoxon, Holm correction, paired Cohen dz and win fraction.
+- [x] Report all predeclared regimes, including the neutral/uncertain high-load result.
+- [x] Report secondary PDR, P95 latency and demand-normalized fairness descriptively.
+- [x] Preserve 20 unique paired holdout seeds per regime as the inferential pairs for this prospective analysis.
+- [x] Record workflow run, head SHA and artifact digest in the Paper-1 result document.
+- [ ] Execute the new statistics script from a clean CI/publication workflow and save its machine-readable output as a frozen Paper-1 artifact.
 
 ### Mechanism closure — REQUIRED
 
@@ -196,13 +197,14 @@ Do this without duplicating reusable science code or breaking provenance.
 - [x] Add authoritative Paper 1 / Paper 2 scope boundary document.
 - [x] Update root README with the two scopes.
 - [x] Define labels: `PAPER1`, `PAPER2`, `SHARED`, `HISTORICAL_DIAGNOSTIC`.
-- [ ] Create publication-facing `paper/paper1/`, `paper/paper2/`, `paper/shared/` directories.
-- [ ] Create `artifacts/paper1_final/`, `artifacts/paper2_final/`, `artifacts/shared/`, `artifacts/diagnostics/` contracts without silently moving/relabeling legacy evidence.
-- [ ] Add per-paper README/manifests listing exact inputs and outputs.
-- [ ] Update publication workflows so each run declares `PAPER1` or `PAPER2` scope.
-- [ ] Keep reusable implementation in `src/predictive_pc_fmcw/`.
-- [ ] Keep legacy paths readable until dependent scripts/workflows are migrated and tested.
-- [ ] Run repository-wide tests/lint after migration.
+- [x] Create publication-facing `paper/paper1/`, `paper/paper2/`, `paper/shared/` workspaces.
+- [x] Create `artifacts/paper1_final/`, `artifacts/paper2_final/`, `artifacts/shared/`, `artifacts/diagnostics/` contracts without silently moving/relabeling legacy evidence.
+- [x] Add per-paper README files describing scope, evidence boundaries and final-release gates.
+- [ ] Add scope-specific publication manifests listing exact inputs and outputs.
+- [ ] Update publication workflows so each final run declares `PAPER1` or `PAPER2` scope.
+- [x] Keep reusable implementation in `src/predictive_pc_fmcw/`.
+- [x] Keep legacy paths readable; no destructive artifact migration has been performed.
+- [ ] Run repository-wide tests/lint after the latest split/statistics changes and require green CI.
 
 ## Execution order
 
