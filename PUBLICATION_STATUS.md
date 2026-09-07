@@ -1,97 +1,64 @@
-# Publication Status — Dataset-Free Synthetic Study
+# Publication Status — Paper 1 / Paper 2
 
 ## Overall status
 
-**NOT PAPER READY**
+This repository now contains two deliberately separated scientific scopes. A single global `NOT PAPER READY` label is no longer accurate.
 
-This repository contains the dataset-free simulation protocol and execution infrastructure, but publication readiness still requires quantitative completion of the frozen experiments. Code existence or CI success is not scientific evidence.
+### Paper 1 — classical predictive scheduling / university Part B
 
-## Completed infrastructure
+**STATUS: SCIENTIFICALLY CLOSED FOR UNIVERSITY PART B, WITH AN EXPLICIT MODEL-BASED SYNTHETIC CLAIM BOUNDARY.**
 
-- Deterministic, seeded synthetic mobility generator with 11 scenario families.
-- Configured minimum-separation safeguard using one constant lateral translation when a generated trajectory violates the controlled clearance assumption; this preserves velocity/acceleration smoothness but remains a simulation assumption rather than a real-traffic claim.
-- Scenario-level train/development/held-out/OOD partitions with zero-overlap validation and explicit harder-than-training OOD mobility checks.
-- Causal noisy range/radial-velocity/bearing observations; predictor histories are truncated at the current step and cannot contain future truth.
-- Ground-truth x/y, velocity, acceleration, speed, heading, range, radial velocity, and bearing.
-- Frozen link-model mapping from motion state to SNR, BER, PER, outage, effective rate/goodput, and link lifetime.
-- Separate actual-channel and forecast-channel configurations for controlled channel-mismatch experiments; robustness perturbations do not rewrite the realized channel trace.
-- Deterministic packet traffic with arrivals, deadlines, expiration, retransmissions, delivery, latency, queue state, and goodput accounting.
-- B0–B4 classical predictor evaluation and development future-link evaluation through the same link model.
-- Leakage-safe train/development export for learned models.
-- Frozen learned-objective plan: 4 objectives × 5 canonical seeds = exactly 20 runs.
-- Resume/checkpoint validation and a fail-closed publication freeze gate requiring all 20 verified checkpoints.
-- Development-only checkpoint selection for the trajectory-only and full communication-aware scheduler models; held-out/OOD data are excluded from selection.
-- Frozen packet-scheduling protocol S0–S7 with exactly five paired traffic seeds. S7 Oracle is evaluator-only.
-- Multi-vehicle scenario/episode construction with disjoint source trajectories and paired traffic traces reused across schedulers.
-- Freeze-gated held-out/OOD scheduling evaluation with S0–S7, including the selected learned checkpoints and evaluator-only oracle.
-- Scenario/episode-level scheduling statistics with traffic-seed averaging within episode, bootstrap confidence intervals, paired tests/effect sizes, and Holm multiplicity correction for predeclared primary comparisons.
-- Robustness protocol covering observation-noise scaling, forecast-channel mismatch, forecast-SNR bias, atmospheric-attenuation mismatch, and separate OOD evaluation.
-- Operating-region sweep infrastructure over forecast horizon, channel difficulty, offered load/deadline tightness, and mobility-difficulty axes.
-- Official held-out/OOD learned-model evaluator that evaluates all 4 objectives × 5 seeds after the publication freeze and performs no official-split model selection.
-- Freeze-gated held-out and OOD official window exporters with no-silent-overwrite behavior and embedded freeze provenance hashes.
-- Publication-artifact contract for exactly Figures 1–10 and Tables I–VIII. Each artifact is READY/BLOCKED based only on saved inputs, with SHA-256 provenance; missing official evidence cannot be replaced by placeholders or manual values.
+Paper 1 asks when causal future geometry/link information improves packet scheduling for the modeled PC-FMCW/DPSK vehicular optical link. Its final manuscript is `paper/paper1/manuscript/PAPER1_FINAL_DRAFT.md`; its frozen protocol is `configs/paper1_final_protocol.json`; its completion audit is `paper/paper1/PAPER1_COMPLETION_AUDIT.md`; and its publication-facing evidence package is `artifacts/paper1_final/`.
 
-## Experiments not yet completed
+The proposed refinement is a predictive scheduler with a prospectively selected current-service guard. The frozen selected policy is `service_guarded_80` (`guard_ratio = 0.8`) versus Reactive Greedy. Selection used development seeds 20261101–20261110 only. Confirmatory evaluation used 20 disjoint paired holdout seeds 20261201–20261220 in four predeclared regimes, with 100,000 paired bootstrap replicates, two-sided paired Wilcoxon tests, Holm correction across the four primary comparisons, paired Cohen dz, and a practical HELP/HURT margin of ±0.001 Mbps.
 
-- 20 verified learned-model checkpoints: **NOT YET EXECUTED/VERIFIED AS A COMPLETE SET**.
-- Frozen held-out trajectory and communication-aware learned evaluation: **BLOCKED BY TRAINING FREEZE**.
-- OOD learned evaluation: **BLOCKED BY TRAINING FREEZE**.
-- Packet-level scheduler comparison S0–S7 across the frozen five paired traffic seeds: **NOT YET COMPLETED**.
-- Operating-region sweeps and heatmap analysis: **NOT YET COMPLETED**.
-- Observation/channel-model robustness sweeps: **NOT YET COMPLETED**.
-- Objective A/B/C/D quantitative ablation on official splits: **BLOCKED BY TRAINING**.
-- Scenario/episode-level paired statistical report on official scheduling outputs: **NOT YET COMPLETED**.
-- Publication Figures 1–10 and Tables I–VIII from frozen saved artifacts: **BLOCKED UNTIL THEIR REQUIRED INPUT ARTIFACTS EXIST**.
+The confirmatory synthetic holdout gives HELP in three regimes: deadline 0.05 s (+0.03730 Mbps, 95% CI [0.02195, 0.05365], Holm p=0.001875, dz=1.000), deadline 0.5 s (+0.05680 Mbps, [0.04015, 0.07530], Holm p=0.000527, dz=1.384), and SNR offset +3 dB (+0.01915 Mbps, [0.00790, 0.03120], Holm p=0.019954, dz=0.706). Offered load 1.1 remains NEUTRAL_OR_UNCERTAIN (+0.00860 Mbps, [-0.00230, 0.02050], Holm p=0.295869, dz=0.322) and has a descriptive +50 ms P95-latency difference with 95% CI [20, 85] ms.
 
-## Primary numerical results
+Therefore the supported Paper-1 conclusion is conditional: predictive communication-aware scheduling can improve modeled packet-level performance when future link information is actionable and immediate service opportunity is protected, but it is not uniformly beneficial and latency can worsen under high load.
 
-None are claimed yet. Development artifacts are diagnostic/model-selection outputs and must not be presented as final held-out evidence.
+Paper 1 is suitable as a defensible university Part-B study. It is also a strong mini-paper/pre-publication package, but it is **not** equivalent to externally validated journal/conference evidence. The optical channel remains model-based; no measured end-to-end optical channel, real-road deployment, or real-world vehicular validation is claimed. The prospective holdout retains its original evidence label `EXECUTED_DIAGNOSTIC / prospectively selected synthetic holdout`; freezing its statistics does not relabel it as WOMD or measured evidence.
 
-## Executed corrected-scheduler diagnostics — noncanonical
+### Paper 2 — learned communication-aware prediction
 
-The packet-aware lifetime-urgency correction has now passed repository CI and a dedicated diagnostic workflow. These executions are **EXECUTED/DIAGNOSTIC**, synthetic, and noncanonical; they do not satisfy Stage 6 or the publication freeze.
+**STATUS: INCOMPLETE / NOT PAPER READY.**
 
-At the default 12-episode synthetic reference condition, corrected Link-Lifetime versus Reactive shows only a small aggregate-goodput difference (+0.0141 Mbps; paired bootstrap interval crosses zero), a small PDR increase, and a small reduction in deadline misses. In contrast, P95 latency is worse by about 266 ms and this tail-latency penalty is consistent across the paired episodes, while demand-normalized Jain fairness improves by about 0.028. Predictive Utility and Oracle show nearly the same latency/fairness trade-off, so the observed tail-latency cost is not attributable solely to the lifetime-urgency term.
+Paper 2 contains the heavier learned extension. Publication readiness still requires the complete frozen 4-objective × 5-independent-seed GRU archive (20 verified checkpoints), untouched held-out/OOD learned evaluation, learned-predictor scheduling evaluation, communication-aware objective ablations and predictor-to-communication joins, robustness/operating-region evidence as required by its protocol, final paired statistics, and its own publication figures/tables/manifests. Paper-1 evidence must not be used to imply that these learned claims have been executed.
 
-The corrected paper-ablation diagnostic further shows that removing the fairness term raises aggregate goodput and materially reduces P95 latency relative to the predictive policies, while reducing fairness. This is mechanism evidence for an objective trade-off rather than evidence that prediction is intrinsically harmful. The same diagnostic also shows large sensitivity to the channel/BER modeling choice, so scheduler conclusions must not be inferred from cross-channel comparisons.
+## Shared completed infrastructure
 
-The quick operating-region matrix uses only two independent seeds and is therefore descriptive only. Its current Link-Lifetime aggregate goodput difference versus Reactive is approximately neutral at offered load 0.35 and negative on average at offered load 0.55. No inferential HELP/HURT claim is permitted from this quick matrix.
+The repository contains deterministic synthetic mobility generation, causal observation histories, leakage-safe scenario splits, classical Last-Position/CV/CA/Kalman/IMM prediction, future geometry/link translation, a PC-FMCW/DPSK-informed link abstraction, packet queues/deadlines/retransmissions, broad reactive and predictive scheduler families, evaluator-only Oracle information, paired traffic randomness, robustness/operating-region infrastructure, learned-objective/checkpoint validation machinery, and extensive regression/scientific-gate tests.
 
-A decision-level diagnostic has also been added to measure how often Link-Lifetime actually changes the selected receiver relative to Predictive Utility, and how often Oracle information changes decisions relative to Link-Lifetime. Those outputs are mechanism diagnostics only and must remain separate from official publication evidence.
+The Part-A physical-layer provenance is frozen in `configs/part_a_physical_layer.json`. The local communication study uses a reference-SNR/model abstraction rather than claiming a calibrated absolute optical power budget. The canonical Stage-2 receiver evidence is retained under `artifacts/paper_final/02_link/` and the resolved FFT alias-branch receiver verification is referenced by the Paper-1 manifest.
 
-## Hypothesis status
+## Paper-1 evidence provenance
 
-**UNEVALUATED.** No PASS/FAIL/MIXED conclusion is permitted until the frozen held-out, OOD, scheduling, robustness/operating-region, and statistical pipeline has completed. Negative or mixed results must remain visible.
+The prospectively selected service-guard result is traceable to workflow run 34055071988, head SHA `769d461aa09d4a9d7af8d47c9536d6e2d5c08b30`, artifact ID 9995724323, artifact name `prospective-current-service-guard`, and digest `sha256:041e93b097a21924fe3d7b37e4eeb6aaf8d54e1e2ff55f97f419bd81dac758df`. Its compact statistics and provenance are versioned in `artifacts/paper1_final/primary_statistics.json` and `artifacts/paper1_final/publication_manifest.json`.
 
-## Limitations
+The Paper-1 publication-evidence freeze was merged at commit `2a407c2a946661fb7e131b1e2ab052dbe0f5ab8e`. Post-merge CI run 34149666617 (#648) completed successfully on that exact `main` commit.
 
-The study is a controlled synthetic simulation and is not real-world deployment validation. Observation-noise values and the minimum-separation correction policy are controlled assumptions that require sensitivity analysis; they are not inferred from Part 1 performance. Oracle information is evaluator-only and must never enter deployable decisions. The current learned/scheduler position interface reconstructs causal XY from observed range/bearing; radial-velocity observations are generated and retained but are not yet used directly by that learned position interface. Any paper claim must describe this limitation explicitly.
+## Negative and null evidence that must remain visible
 
-## Exact execution path
+Paper 1 does not support a universal prediction-gain claim. Earlier controlled diagnostics showed only small aggregate-goodput differences and material tail-latency costs for unconstrained predictive policies. Urgent/bulk diagnostics showed that link-lifetime urgency can serve bulk traffic at the expense of urgent PDR when link urgency and packet urgency conflict. The prospectively selected service guard improves the confirmatory result in three predeclared regimes but does not establish HELP at offered load 1.1, where the goodput interval crosses the practical null region and P95 latency is descriptively worse.
 
-```bash
-make synthetic-pipeline
-make synthetic-ablation
-make synthetic-freeze
-make synthetic-select-checkpoints
-make synthetic-heldout
-make synthetic-ood
-make synthetic-learned-heldout
-make synthetic-learned-ood
-make synthetic-scheduling-protocol
-make synthetic-scheduling-heldout
-make synthetic-scheduling-ood
-make synthetic-stats-heldout
-make synthetic-stats-ood
-make synthetic-robustness-heldout
-make synthetic-robustness-ood
-make synthetic-operating-heldout
-make synthetic-operating-ood
-make synthetic-publication-manifest
-```
+These negative/null findings are part of the scientific result and must not be deleted or hidden in future manuscript revisions.
 
-`synthetic-pipeline` prepares and validates the canonical Synthetic Dataset v1 protocol plus development artifacts. `synthetic-ablation` performs the frozen 20-run learned ablation and requires an ML-capable environment. `synthetic-freeze` refuses publication evaluation unless all 20 objective/seed checkpoints validate against the frozen training artifact. Checkpoint selection is development-only. Only after the freeze passes can official held-out/OOD windows, learned evaluation, scheduling, robustness, operating-region outputs, statistics, and publication-artifact readiness be completed.
+## Claim boundary
 
-## Completion rule
+- Future ground truth is permitted only for realized outcomes/evaluation and explicitly labeled Oracle/reference information; deployable schedulers remain causal.
+- Simulated/model-derived channel quantities are not measurements.
+- The Part-A connection must remain explicit, including which physical-layer quantities are frozen upstream and which geometry/link assumptions are new in Part B.
+- The independent inferential unit is the paired scenario/episode seed, not packets or time samples.
+- No learned-model claim may be promoted until the Paper-2 freeze requirements are satisfied.
+- No external/real-world validation claim may be made from the Paper-1 synthetic holdout.
 
-Do not change this status to paper-ready merely because scripts execute or CI is green. Paper readiness requires the complete verified 20-checkpoint set, untouched frozen held-out/OOD quantitative outputs, paired scheduling evidence, robustness and operating-region results, confidence intervals/effect sizes with the declared inferential unit, all required figures/tables generated from saved artifacts, preserved failed/negative experiments, and a clean reproduction run. Hypothesis PASS requires quantitative evidence; absence of evidence is never PASS.
+## Current readiness summary
+
+**University Part B:** READY, provided the report preserves the model/simulation boundary and the conditional conclusion above.
+
+**Paper 1 as an externally validated publication:** PRE-PUBLICATION / LIMITED BY EXTERNAL VALIDATION. The scientific narrative, protocol, confirmatory statistics, provenance package, completion audit and CI are closed, but stronger venue claims would benefit from independent real-motion/external-data validation and/or measured/calibrated optical-channel evidence.
+
+**Paper 2:** NOT PAPER READY. The complete learned experiment archive and official evaluations remain outstanding.
+
+## Reproducibility rule
+
+Code existence or green CI alone is never scientific evidence. Numerical claims must remain traceable to executed artifacts with preserved evidence labels. Future stronger claims require their own frozen protocol, clean execution, raw outputs, statistics, figures/tables and manifest. Negative or mixed results must remain visible.
