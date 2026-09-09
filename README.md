@@ -13,6 +13,8 @@ This repository contains shared scientific infrastructure for **two distinct pub
 ## Publication scopes
 
 ### Paper 1 — mechanism and operating-region study
+![Uploading image.png…]()
+
 
 **Working title:** *When Does Trajectory Prediction Help PC-FMCW/DPSK Vehicular Optical Scheduling?*
 
