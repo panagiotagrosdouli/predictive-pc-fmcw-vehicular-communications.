@@ -2,6 +2,8 @@
 
 **Causal trajectory forecasting for deadline-aware optical vehicle scheduling**
 
+![Project overview](docs/project_overview.jpg)
+
 **English** | [Ελληνικά](README_GR.md) · [Paper 1 / Paper 2 boundary](docs/PAPER_SCOPE_BOUNDARY.md) · [Paper roadmap](PAPER_ROADMAP.md) · [Executable stages](stages) · [Repository architecture](docs/REPOSITORY_ARCHITECTURE.md) · [Paper draft](paper/PAPER_DRAFT.md)
 
 > Can motion forecasts help a vehicle scheduler deliver packets before a
@@ -13,8 +15,6 @@ This repository contains shared scientific infrastructure for **two distinct pub
 ## Publication scopes
 
 ### Paper 1 — mechanism and operating-region study
-![Uploading image.png…]()
-
 
 **Working title:** *When Does Trajectory Prediction Help PC-FMCW/DPSK Vehicular Optical Scheduling?*
 
