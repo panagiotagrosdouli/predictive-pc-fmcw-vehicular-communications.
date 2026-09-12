@@ -19,7 +19,16 @@ def _validate_history(history_xy: ArrayLike) -> NDArray[np.float64]:
     history = np.asarray(history_xy, dtype=np.float64)
     if history.ndim < 2 or history.shape[-1] != 2 or history.shape[-2] < 2:
         raise ValueError("history_xy must have shape (..., history, 2), history >= 2.")
+    if not np.all(np.isfinite(history)):
+        raise ValueError("history_xy must contain only finite values.")
     return history
+
+
+def _validate_prediction_request(horizon_steps: int, dt_s: float) -> None:
+    if horizon_steps < 1:
+        raise ValueError("horizon_steps must be positive.")
+    if not np.isfinite(dt_s) or dt_s <= 0:
+        raise ValueError("dt_s must be a finite positive value.")
 
 
 @dataclass(frozen=True)
@@ -31,7 +40,7 @@ class LastPositionPredictor:
     def predict(
         self, history_xy: ArrayLike, horizon_steps: int, dt_s: float
     ) -> NDArray[np.float64]:
-        del dt_s
+        _validate_prediction_request(horizon_steps, dt_s)
         history = _validate_history(history_xy)
         return np.repeat(history[..., -1, None, :], horizon_steps, axis=-2)
 
@@ -43,6 +52,7 @@ class ConstantVelocityPredictor:
     def predict(
         self, history_xy: ArrayLike, horizon_steps: int, dt_s: float
     ) -> NDArray[np.float64]:
+        _validate_prediction_request(horizon_steps, dt_s)
         history = _validate_history(history_xy)
         velocity = (history[..., -1, :] - history[..., -2, :]) / dt_s
         steps = np.arange(1, horizon_steps + 1, dtype=np.float64)
@@ -59,6 +69,7 @@ class ConstantAccelerationPredictor:
     def predict(
         self, history_xy: ArrayLike, horizon_steps: int, dt_s: float
     ) -> NDArray[np.float64]:
+        _validate_prediction_request(horizon_steps, dt_s)
         history = _validate_history(history_xy)
         if history.shape[-2] < 3:
             return ConstantVelocityPredictor().predict(history, horizon_steps, dt_s)
@@ -92,6 +103,7 @@ class KalmanConstantVelocityPredictor:
     def predict(
         self, history_xy: ArrayLike, horizon_steps: int, dt_s: float
     ) -> NDArray[np.float64]:
+        _validate_prediction_request(horizon_steps, dt_s)
         history = _validate_history(history_xy)
         leading = history.shape[:-2]
         flattened = history.reshape(-1, history.shape[-2], 2)
@@ -161,6 +173,7 @@ class InteractingMultipleModelPredictor:
     def predict(
         self, history_xy: ArrayLike, horizon_steps: int, dt_s: float
     ) -> NDArray[np.float64]:
+        _validate_prediction_request(horizon_steps, dt_s)
         history = _validate_history(history_xy)
         cv = KalmanConstantVelocityPredictor(
             measurement_std_m=self.measurement_std_m
@@ -213,18 +226,29 @@ def forecast_scenario(
     predictor: TrajectoryPredictor | None,
     oracle: bool = False,
 ) -> ForecastBundle:
-    total = combined_positions.shape[0]
+    _validate_prediction_request(horizon_steps, dt_s)
+    positions = np.asarray(combined_positions, dtype=np.float64)
+    if positions.ndim != 3 or positions.shape[-1] != 2 or positions.shape[1] < 2:
+        raise ValueError("combined_positions must have shape (time, actors, 2), actors >= 2.")
+    if positions.shape[0] < 1:
+        raise ValueError("combined_positions must contain at least one time step.")
+    if not np.all(np.isfinite(positions)):
+        raise ValueError("combined_positions must contain only finite values.")
+    if not 0 <= time_index < positions.shape[0]:
+        raise IndexError("time_index must reference an available time step.")
+
+    total = positions.shape[0]
     indices = np.minimum(
         np.arange(time_index + 1, time_index + horizon_steps + 1), total - 1
     ).astype(np.int64)
     if oracle:
-        prediction = combined_positions[indices].transpose(1, 0, 2)
+        prediction = positions[indices].transpose(1, 0, 2)
     else:
         if predictor is None:
-            current = combined_positions[time_index].transpose(0, 1)
+            current = positions[time_index].transpose(0, 1)
             prediction = np.repeat(current[:, None, :], horizon_steps, axis=1)
         else:
-            causal_history = combined_positions[: time_index + 1].transpose(1, 0, 2)
+            causal_history = positions[: time_index + 1].transpose(1, 0, 2)
             prediction = predictor.predict(causal_history, horizon_steps, dt_s)
     return ForecastBundle(
         ego_xy=prediction[0],
