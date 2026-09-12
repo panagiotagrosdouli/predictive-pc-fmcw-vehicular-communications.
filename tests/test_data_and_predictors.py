@@ -8,6 +8,7 @@ import numpy as np
 from predictive_pc_fmcw.data.synthetic import generate_synthetic_scenario
 from predictive_pc_fmcw.data.womd_export import load_womd_motion_scenarios
 from predictive_pc_fmcw.predictors import (
+    ConstantAccelerationPredictor,
     ConstantVelocityPredictor,
     InteractingMultipleModelPredictor,
     KalmanConstantVelocityPredictor,
@@ -75,6 +76,48 @@ class DataAndPredictorTest(unittest.TestCase):
                 changed, scenario.start_index, 4, scenario.dt_s, predictor
             )
             np.testing.assert_array_equal(first.vehicle_xy, second.vehicle_xy)
+
+    def test_predictors_reject_invalid_prediction_requests(self):
+        history = np.asarray([[0.0, 0.0], [1.0, 0.0], [2.0, 0.0], [3.0, 0.0]])
+        predictors = (
+            LastPositionPredictor(),
+            ConstantVelocityPredictor(),
+            ConstantAccelerationPredictor(),
+            KalmanConstantVelocityPredictor(),
+            InteractingMultipleModelPredictor(),
+        )
+        for predictor in predictors:
+            with self.subTest(predictor=predictor.name, case="zero_horizon"):
+                with self.assertRaises(ValueError):
+                    predictor.predict(history, 0, 0.1)
+            with self.subTest(predictor=predictor.name, case="zero_dt"):
+                with self.assertRaises(ValueError):
+                    predictor.predict(history, 2, 0.0)
+            with self.subTest(predictor=predictor.name, case="nonfinite_dt"):
+                with self.assertRaises(ValueError):
+                    predictor.predict(history, 2, np.nan)
+
+    def test_predictors_reject_nonfinite_history(self):
+        history = np.asarray([[0.0, 0.0], [np.nan, 1.0]])
+        with self.assertRaises(ValueError):
+            ConstantVelocityPredictor().predict(history, 2, 0.1)
+
+    def test_forecast_scenario_rejects_invalid_inputs(self):
+        positions = np.zeros((4, 3, 2), dtype=float)
+        with self.assertRaises(ValueError):
+            forecast_scenario(positions, 1, 0, 0.1, ConstantVelocityPredictor())
+        with self.assertRaises(ValueError):
+            forecast_scenario(positions, 1, 2, 0.0, ConstantVelocityPredictor())
+        with self.assertRaises(IndexError):
+            forecast_scenario(positions, -1, 2, 0.1, ConstantVelocityPredictor())
+        with self.assertRaises(IndexError):
+            forecast_scenario(positions, 4, 2, 0.1, ConstantVelocityPredictor())
+        with self.assertRaises(ValueError):
+            forecast_scenario(np.zeros((4, 2)), 1, 2, 0.1, None)
+        invalid = positions.copy()
+        invalid[1, 1, 0] = np.inf
+        with self.assertRaises(ValueError):
+            forecast_scenario(invalid, 1, 2, 0.1, None)
 
     def test_womd_proxy_adapter(self):
         records = []
