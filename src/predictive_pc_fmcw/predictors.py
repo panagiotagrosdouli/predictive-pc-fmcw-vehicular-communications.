@@ -229,7 +229,9 @@ def forecast_scenario(
     _validate_prediction_request(horizon_steps, dt_s)
     positions = np.asarray(combined_positions, dtype=np.float64)
     if positions.ndim != 3 or positions.shape[-1] != 2 or positions.shape[1] < 2:
-        raise ValueError("combined_positions must have shape (time, actors, 2), actors >= 2.")
+        raise ValueError(
+            "combined_positions must have shape (time, actors, 2), actors >= 2."
+        )
     if positions.shape[0] < 1:
         raise ValueError("combined_positions must contain at least one time step.")
     if not np.all(np.isfinite(positions)):
