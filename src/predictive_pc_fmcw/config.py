@@ -42,6 +42,16 @@ class LinkConfig:
         )
         if any(value <= 0 for value in physical) or self.packet_bits <= 0:
             raise ValueError("Physical parameters and packet length must be positive.")
+        if self.reference_distance_m <= 0:
+            raise ValueError("reference_distance_m must be positive.")
+        if self.beam_divergence_half_angle_deg <= 0:
+            raise ValueError("beam_divergence_half_angle_deg must be positive.")
+        if self.pointing_sigma_deg <= 0:
+            raise ValueError("pointing_sigma_deg must be positive.")
+        if self.atmospheric_attenuation_per_m < 0:
+            raise ValueError("atmospheric_attenuation_per_m must be non-negative.")
+        if self.min_received_power_w < 0:
+            raise ValueError("min_received_power_w must be non-negative.")
         if not 0 < self.resource_fraction <= 1:
             raise ValueError("resource_fraction must be in (0, 1].")
         if not 0 < self.field_of_view_deg <= 180:
