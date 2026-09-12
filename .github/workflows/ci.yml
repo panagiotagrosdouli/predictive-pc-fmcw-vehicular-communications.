@@ -24,3 +24,20 @@ jobs:
       - run: pytest
       - run: python scripts/check_stage_entrypoints.py
       - run: pcfmcw validate --config configs/default.json --output results/validation.json
+
+  paper1-latex:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile Paper 1
+        uses: xu-cheng/latex-action@v4
+        with:
+          root_file: main.tex
+          working_directory: paper/paper1/manuscript
+          latexmk_use_xelatex: false
+      - name: Upload Paper 1 PDF
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper1-pdf
+          path: paper/paper1/manuscript/main.pdf
+          if-no-files-found: error
