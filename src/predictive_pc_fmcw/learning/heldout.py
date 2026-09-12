@@ -86,12 +86,27 @@ def evaluate_checkpoint_arrays(
     future = np.asarray(future_xy, dtype=np.float32)
     heading = np.asarray(future_ego_heading_rad, dtype=np.float64)
     scenarios = np.asarray(scenario_ids).astype(str)
-    if history.ndim != 3 or future.ndim != 3 or history.shape[-1] != 2:
+    if (
+        history.ndim != 3
+        or future.ndim != 3
+        or history.shape[-1] != 2
+        or future.shape[-1] != 2
+    ):
         raise ValueError("Expected history/future arrays shaped (samples, time, 2).")
-    if not (history.shape[0] == future.shape[0] == heading.shape[0] == scenarios.size):
+    if history.shape[0] < 1 or history.shape[1] < 1 or future.shape[1] < 1:
+        raise ValueError("Held-out evaluation requires non-empty samples and horizons.")
+    if not (history.shape[0] == future.shape[0] == scenarios.size):
         raise ValueError("Held-out arrays have inconsistent sample counts.")
-    if batch_size < 1 or dt_s <= 0:
-        raise ValueError("batch_size and dt_s must be positive.")
+    if heading.shape != future.shape[:2]:
+        raise ValueError("future_ego_heading_rad must have shape (samples, horizon).")
+    if not (
+        np.all(np.isfinite(history))
+        and np.all(np.isfinite(future))
+        and np.all(np.isfinite(heading))
+    ):
+        raise ValueError("Held-out arrays must contain only finite values.")
+    if batch_size < 1 or not np.isfinite(dt_s) or dt_s <= 0:
+        raise ValueError("batch_size must be positive and dt_s finite and positive.")
 
     predicted_chunks = []
     for start in range(0, history.shape[0], batch_size):
@@ -103,6 +118,8 @@ def evaluate_checkpoint_arrays(
     target = future.astype(np.float64)
     if predicted.shape != target.shape:
         raise ValueError("Checkpoint prediction shape does not match held-out targets.")
+    if not np.all(np.isfinite(predicted)):
+        raise ValueError("Checkpoint prediction contains non-finite values.")
 
     trajectory_error = np.linalg.norm(predicted - target, axis=-1)
     predicted_range = np.linalg.norm(predicted, axis=-1)
