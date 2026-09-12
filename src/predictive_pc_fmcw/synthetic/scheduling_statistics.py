@@ -38,24 +38,30 @@ def aggregate_traffic_seeds(rows: list[dict[str, object]]) -> list[dict[str, obj
         grouped[(str(row["scenario_id"]), str(row["protocol_id"]))].append(row)
     aggregated: list[dict[str, object]] = []
     for (episode, protocol_id), selected in sorted(grouped.items()):
-        seeds = {int(row["traffic_seed"]) for row in selected}
-        if len(seeds) != 5:
+        seed_values = [int(row["traffic_seed"]) for row in selected]
+        seeds = set(seed_values)
+        if len(selected) != 5 or len(seeds) != 5:
             message = (
-                f"{episode}/{protocol_id} must contain exactly five paired "
-                "traffic seeds"
+                f"{episode}/{protocol_id} must contain exactly five unique paired "
+                "traffic-seed rows"
             )
             raise ValueError(message)
+        metric_values: dict[str, float] = {}
+        for metric in SCHEDULING_METRICS:
+            values = np.asarray(
+                [float(row[metric]) for row in selected], dtype=np.float64
+            )
+            if not np.all(np.isfinite(values)):
+                raise ValueError(
+                    f"{episode}/{protocol_id}/{metric} contains non-finite values"
+                )
+            metric_values[metric] = float(np.mean(values))
         aggregated.append(
             {
                 "scenario_id": episode,
                 "protocol_id": protocol_id,
                 "traffic_seed_replicates": len(selected),
-                **{
-                    metric: float(
-                        np.mean([float(row[metric]) for row in selected])
-                    )
-                    for metric in SCHEDULING_METRICS
-                },
+                **metric_values,
             }
         )
     return aggregated
@@ -94,6 +100,31 @@ def _scheduler_summary(
     return summary
 
 
+def _paired_episode_ids(
+    indexed: dict[tuple[str, str], dict[str, object]],
+    proposed: str,
+    baseline: str,
+    name: str,
+) -> list[str]:
+    proposed_episodes = {
+        episode for episode, protocol_id in indexed if protocol_id == proposed
+    }
+    baseline_episodes = {
+        episode for episode, protocol_id in indexed if protocol_id == baseline
+    }
+    if not proposed_episodes or not baseline_episodes:
+        raise ValueError(f"no paired episodes for {name}")
+    if proposed_episodes != baseline_episodes:
+        missing_baseline = sorted(proposed_episodes - baseline_episodes)
+        missing_proposed = sorted(baseline_episodes - proposed_episodes)
+        raise ValueError(
+            f"unbalanced paired episodes for {name}: "
+            f"missing {baseline}={missing_baseline}, "
+            f"missing {proposed}={missing_proposed}"
+        )
+    return sorted(proposed_episodes)
+
+
 def analyze_scheduling_rows(
     rows: list[dict[str, object]],
     *,
@@ -106,19 +137,15 @@ def analyze_scheduling_rows(
         (str(row["scenario_id"]), str(row["protocol_id"])): row
         for row in episode_rows
     }
+    if len(indexed) != len(episode_rows):
+        raise ValueError("duplicate episode/protocol rows remain after aggregation")
     comparisons: dict[str, dict[str, object]] = {}
     test_keys: list[tuple[str, str]] = []
     t_values: list[float] = []
     w_values: list[float] = []
 
     for proposed, baseline, name in PRIMARY_COMPARISONS:
-        episodes = sorted(
-            episode
-            for episode, protocol_id in indexed
-            if protocol_id == proposed and (episode, baseline) in indexed
-        )
-        if not episodes:
-            raise ValueError(f"no paired episodes for {name}")
+        episodes = _paired_episode_ids(indexed, proposed, baseline, name)
         metric_results: dict[str, object] = {}
         for metric, higher_is_better in SCHEDULING_METRICS.items():
             proposed_values = np.asarray(
