@@ -1,11 +1,27 @@
 from __future__ import annotations
 
 import json
+from itertools import product
 from pathlib import Path
 from typing import Any
 
 from ..data.manifest import sha256_file
 from .ablation import CANONICAL_SEEDS, OBJECTIVES
+
+
+def _checkpoint_run_keys(paths: list[Path]) -> set[tuple[str, int]]:
+    keys: set[tuple[str, int]] = set()
+    for path in paths:
+        seed_dir = path.parent.name
+        objective = path.parent.parent.name
+        if not seed_dir.startswith("seed_"):
+            continue
+        try:
+            seed = int(seed_dir.removeprefix("seed_"))
+        except ValueError:
+            continue
+        keys.add((objective, seed))
+    return keys
 
 
 def verify_completion_manifest(
@@ -17,6 +33,7 @@ def verify_completion_manifest(
     manifest_source = Path(manifest_path)
     payload = json.loads(manifest_source.read_text(encoding="utf-8"))
     expected_runs = len(OBJECTIVES) * len(CANONICAL_SEEDS)
+    expected_keys = set(product(OBJECTIVES, CANONICAL_SEEDS))
     supplied = [Path(path) for path in checkpoints]
     declared = [Path(path) for path in payload.get("checkpoints", [])]
 
@@ -33,7 +50,11 @@ def verify_completion_manifest(
         ),
         "twenty_checkpoints_declared": len(declared) == expected_runs,
         "twenty_checkpoints_supplied": len(supplied) == expected_runs,
+        "declared_checkpoint_paths_unique": len(set(declared_paths)) == expected_runs,
+        "supplied_checkpoint_paths_unique": len(set(supplied_paths)) == expected_runs,
         "checkpoint_paths_match_manifest": supplied_paths == declared_paths,
+        "declared_run_grid_complete": _checkpoint_run_keys(declared) == expected_keys,
+        "supplied_run_grid_complete": _checkpoint_run_keys(supplied) == expected_keys,
         "supplied_checkpoints_exist": all(path.is_file() for path in supplied),
         "link_config_hash_recorded": bool(payload.get("link_config_sha256")),
     }
